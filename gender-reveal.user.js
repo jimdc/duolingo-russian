@@ -10,6 +10,7 @@
 
 function initApplication() {
     var words = document.querySelectorAll('[data-test="hint-token"]');
+    console.log(words);
     var i;
     for (i = 0; i < words.length; i++) {
         words[i].style.backgroundColor = "red";
@@ -19,7 +20,5 @@ function initApplication() {
 document.onreadystatechange = function () {
     if (document.readyState === "complete") {
         initApplication();
-	console.log('hello, world');
-	GM_log('helloGM');
     }
 }
