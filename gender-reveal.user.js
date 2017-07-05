@@ -6,8 +6,8 @@
 // @version     1
 // ==/UserScript==
 
-var sentence = document.querySelectorAll('[data-test="hint-token"]');
+var words = document.querySelectorAll('[data-test="hint-token"]');
 var i;
-for (i = 0; i < x.length; i++) {
-    sentence[i].style.backgroundColor = "red";
+for (i = 0; i < words.length; i++) {
+    words[i].style.backgroundColor = "red";
 }
