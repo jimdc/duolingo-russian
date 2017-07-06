@@ -2,7 +2,7 @@
 // @name        Gender Reveal
 // @namespace   genderreveal
 // @description Reveal grammatical gender on DuoLingo
-// @include     https://*.duolingo.com/skill/*/practice
+// @include     https://*.duolingo.com/*
 // @namespace   https://github.com/samideano/gender-reveal
 // @updateURL   https://github.com/samideano/gender-reveal/raw/master/gender-reveal.user.js
 // @version     1.2
@@ -10,7 +10,7 @@
 
 function highlightWords() {
     var words = document.querySelectorAll('[data-test="hint-token"]');
-    console.log(words);
+    alert(words);
     var i;
     for(i = 0; i < words.length; i++) {
         words[i].style.backgroundColor = "red";
