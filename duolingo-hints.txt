@@ -1,0 +1,71 @@
+<span data-test="hint-sentence" class="_38VWB"> 
+
+<!-- 
+    This class is true for both "Schweden ist nicht die Schweiz" and "Das Boot". 
+    Other classes have "_38VWB" in them, so also test for 'data-test="hint-sentence"' ?
+
+    Hint-token span class seems to be "_10knO TyDwn _3_AmQ": innerHTML between react-text is the word.
+    Gender td class seems to be "_1ekdE _3Gof3 _3s3uv": gender in between <strong></strong> _3s3uv is unique to gender
+-->
+
+  <span data-test="hint-token" class="_10knO TyDwn _3_AmQ"> <!-- "Schweden", masculine -->
+  <!-- react-text: 3511 -->Schweden<!-- /react-text -->
+  <div class="_1c_ny _1gjlS" style="margin-left: 44.5083px;">
+    <div class="XUDC1 _3B1cY _1ZY-H">
+      <table>
+        <thead><tr class="_2KveP"></tr></thead>
+        <tbody>
+        <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">Sweden</td></tr>
+        <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">Swede</td></tr>
+        <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">Swedes</td></tr>
+        <tr class="_2KveP">
+          <td class="_1ekdE _3Gof3 _3s3uv">
+          <!-- react-text: 3526 -->Gender:<!-- /react-text --><!-- react-text: 3527 --> 
+          <!-- /react-text --><strong>Masculine</strong>
+          </td>
+        </tr>
+        </tbody>
+        </table>
+      </div>
+    </div>
+  </span>
+
+  <span data-test="hint-token" class="_10knO TyDwn _3_AmQ"> <!-- "Land", neuter -->
+  <!-- react-text: 3228 -->Land<!-- /react-text -->
+  <div class="_1c_ny _1gjlS" style="margin-left: 20.6333px;">
+    <div class="XUDC1 _3B1cY _1ZY-H">
+      <table>
+        <thead><tr class="_2KveP"></tr></thead>
+        <tbody>
+        <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">country</td></tr>
+        <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">state</td></tr>
+        <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">land</td></tr>
+        <tr class="_2KveP">
+		  <td class="_1ekdE _3Gof3 _3s3uv">
+		  <!-- react-text: 3243 -->Gender:<!-- /react-text -->
+		  <!-- react-text: 3244 --> <!-- /react-text --><strong>Neuter</strong>
+		  </td>
+	    </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </span>
+
+  <span data-test="hint-token" class="_10knO TyDwn _3_AmQ"> <!-- "Das", masculine but no gender hint -->
+  <!-- react-text: 3635 -->Das<!-- /react-text -->
+  <div class="_1c_ny _1gjlS" style="margin-left: 15.825px;">
+    <div class="XUDC1 _3B1cY _1ZY-H">
+      <table>
+      <thead><tr class="_2KveP"></tr></thead>
+      <tbody>
+      <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">the</td></tr>
+      <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">this</td></tr>
+      <tr class="_2KveP"><td class="_1ekdE _3Gof3" colspan="1">that</td></tr>
+      </tbody>
+      </table>
+    </div>
+  </div>
+  </span>
+
+</span>
