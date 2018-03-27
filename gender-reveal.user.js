@@ -15,6 +15,7 @@
   var classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
   var nameGenderHint = "td._3s3uv";
   var nameWord = "span._3_AmQ";
+  var challengeJudgeText = "div._3EaeX"
 
   var realConsole = console;
   var realConsoleLog = console.log;
@@ -40,6 +41,14 @@
       if (document.getElementsByClassName(classNameExercise).length !== 1) {
         return; //No exercise active (<1), or during transition animation between two exercises (>1)
       }
+
+      var challengeJudgeTexts = document.querySelectorAll(challengeJudgeText)
+      var j;
+      for(i = 0; i < challengeJudgeTexts.length; i += 1) {
+          var sentence = challengeJudgeTexts[i].innerHTML;
+          log(sentence)
+      }
+
       <!-- Todo: find a way not to set the color repeatedly. --> 
       var words = document.querySelectorAll(nameWord);
       var i;

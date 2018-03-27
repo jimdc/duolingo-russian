@@ -1,3 +1,4 @@
+<!-- Sentence prompt -->
 <span data-test="hint-sentence" class="_38VWB"> 
 
 <!-- 
@@ -69,3 +70,32 @@
   </span>
 
 </span>
+
+<!-- 
+  Multiple choice prompt: "_3EaeX" is the class of the challenge-judge-text 
+-->
+
+<ul data-test="challenge-judge-options" class="_-YZ3">
+
+  <li data-test="challenge-judge-item" class="V1ATi">
+    <label class="_31nDg _386Rr _2QNyK">
+      <div class="_35SUn _3pcg6">1</div><div class="BblGF"><input data-test="challenge-judge-checkbox" class="-rSGZ _3-rLl _3bCrI _33XIq" value="0" type="checkbox"></div>
+      <div data-test="challenge-judge-text" class="_3EaeX">Ils ont vécu dans cette ville pendant dix ans.</div>
+    </label>
+  </li>
+
+  <li data-test="challenge-judge-item" class="V1ATi">
+    <label class="_31nDg _386Rr _2QNyK">
+      <div class="_35SUn _3pcg6">2</div><div class="BblGF"><input data-test="challenge-judge-checkbox" class="-rSGZ _3-rLl _3bCrI _33XIq" value="1" type="checkbox"></div>
+      <div data-test="challenge-judge-text" class="_3EaeX">Ils ont habité dans cette ville sur dix ans.</div>
+    </label>
+  </li>
+
+  <li data-test="challenge-judge-item" class="V1ATi">
+  <label class="_31nDg _386Rr _2QNyK">
+  <div class="_35SUn _3pcg6">3</div><div class="BblGF"><input data-test="challenge-judge-checkbox" class="-rSGZ _3-rLl _3bCrI _33XIq" value="2" type="checkbox"></div>
+  <div data-test="challenge-judge-text" class="_3EaeX">Ils ont habité dans cette ville entre dix ans.</div>
+  </label>
+  </li>
+
+</ul>
