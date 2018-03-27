@@ -16,7 +16,7 @@
   var nameGenderHint = "td._3s3uv";
   var nameWord = "span._3_AmQ";
   var languageClass = "span._386Yc";
-  var challengeJudgeText = "div._3EaeX"
+  var challengeJudgeText = "div._3EaeX";
 
   var realConsole = console;
   var realConsoleLog = console.log;
@@ -42,14 +42,12 @@
     'une' : 'Feminine',
     'le' : 'Masculine',
     'la' : 'Feminine',
-    'un' : 'Masculine',
-    'une' : 'Feminine',
     'du' : 'Masculine',
-    'mon' : 'Masculine', <!-- Or before a mute initial consonant noun -->
+    'mon' : 'Masculine',
     'ma' : 'Feminine',
-    'ton' : 'Masculine', <!-- Or before a mute initial consonant noun -->
+    'ton' : 'Masculine',
     'ta' : 'Feminine',
-    'son' : 'Masculine', <!-- Or before a mute initial consonant noun -->
+    'son' : 'Masculine',
     'sa' : 'Feminine',
     'celui' : 'Masculine',
     'ceux' : 'Masculine',
@@ -73,11 +71,11 @@
     'dela' : 'Feminine',
     'nele' : 'Masculine',
     'nela' : 'Feminine',
-    'eles' : 'Masculine', <!-- Could be a mixed group -->
+    'eles' : 'Masculine',
     'elas' : 'Feminine',
-    'deles' : 'Masculine', <!-- Could be a mixed group -->
+    'deles' : 'Masculine',
     'delas' : 'Feminine',
-    'neles' : 'Masculine', <!-- Could be a mixed group -->
+    'neles' : 'Masculine',
     'nelas' : 'Feminine',
     'o' : 'Masculine',
     'lo' : 'Masculine',
@@ -109,19 +107,19 @@
     'minhas' : 'Feminine',
     'teu' : 'Masculine',
     'tua' : 'Feminine',
-    'teus' : 'Masculine', <!-- Could be a mixed group -->
+    'teus' : 'Masculine',
     'tuas' : 'Feminine',
     'seu' : 'Masculine',
     'sua' : 'Feminine',
-    'seus' : 'Masculine', <!-- Could be a mixed group -->
+    'seus' : 'Masculine',
     'suas' : 'Feminine',
     'nosso' : 'Masculine',
     'nossa' : 'Feminine',
-    'nossos' : 'Masculine', <!-- Could be a mixed group -->
+    'nossos' : 'Masculine',
     'nossas' : 'Feminine',
     'vosso' : 'Masculine',
     'vossa' : 'Feminine',
-    'vossos' : 'Masculine', <!-- Could be a mixed group -->
+    'vossos' : 'Masculine',
     'vossas' : 'Feminine'
   };
 
@@ -139,45 +137,41 @@
     'suya' : 'Feminine',
     'él' : 'Masculine',
     'ella' : 'Feminine',
-    'ello' : 'Neuter', <!-- rare !!! -->
-    'ellos' : 'Masculine', <!-- Could be a mixed group -->
+    'ello' : 'Neuter',
+    'ellos' : 'Masculine',
     'ellas' : 'Feminine',
-    'nosotros' : 'Masculine', <!-- Could be a mixed group -->
+    'nosotros' : 'Masculine',
     'nosotras' : 'Feminine',
     'nuestro' : 'Masculine',
     'nuestra' : 'Feminine',
-    'nuestros' : 'Masculine', <!-- Could be a mixed group -->
+    'nuestros' : 'Masculine',
     'nuestras' : 'Feminine',
-    'vosotros' : 'Masculine', <!-- Could be a mixed group -->
+    'vosotros' : 'Masculine',
     'vosotras' : 'Feminine',
     'vuestro' : 'Masculine',
     'vuestra' : 'Feminine',
-    'nuestros' : 'Masculine', <!-- Could be a mixed group -->
-    'nuestras' : 'Feminine',
     'cuyo' : 'Masculine',
     'cuya' : 'Feminine',
-    'cuyos' : 'Masculine', <!-- Could be a mixed group -->
+    'cuyos' : 'Masculine',
     'cuyas' : 'Feminine'
   };
 
-  <!-- Problematic, because gender changes during case declension -->
   var germanPronouns = {
     'er' : 'Masculine',
     'ihn' : 'Masculine',
     'ihrer' : 'Feminine',
-    'es' : 'Neuter',
+    'es' : 'Neuter'
   };
 
   var dutchPronouns = {
     'het' : 'Neuter',
     'des' : 'Masculine',
-    'hij' : 'Masculine', <!-- ie? -->
-    'hem' : 'Masculine', <!-- `m? -->
+    'hij' : 'Masculine',
+    'hem' : 'Masculine',
     'zij' : 'Feminine',
     'ze' : 'Feminine',
-    'haar' : 'Feminine', <!-- `r, d`r? -->
-    'het' : 'Neuter', <!-- `t? -->
-  }
+    'haar' : 'Feminine'
+  };
 
   var italianPronouns = {
     'il' : 'Masculine',
@@ -190,10 +184,10 @@
     'uno' : 'Masculine',
     'una' : 'Feminine',
     "un'" : 'Feminine',
-    'del' : 'Masculine'
+    'del' : 'Masculine',
     'dello' : 'Masculine',
-    'dei' : 'Masculine', <!-- Could refer to a mixed group -->
-    'degli' : 'Masculine', <!-- Could refer to a mixed group -->
+    'dei' : 'Masculine',
+    'degli' : 'Masculine',
     'della' : 'Feminine',
     'delle' : 'Feminine',
     'mio' : 'Masculine',
@@ -205,24 +199,24 @@
     'tua' : 'Feminine',
     'tue' : 'Feminine',
     'suo' : 'Masculine',
-    'suoi' : 'Masculine', <!-- Could refer to a mixed group -->
+    'suoi' : 'Masculine',
     'sua' : 'Feminine',
     'sue' : 'Feminine',
     'nostro' : 'Masculine',
-    'nostri' : 'Masculine', <!-- Could refer to a mixed group -->
+    'nostri' : 'Masculine',
     'nostra' : 'Feminine',
     'nostre' : 'Feminine',
     'vostro' : 'Masculine', 
-    'vostri' : 'Masculine', <!-- Could refer to a mixed group -->
+    'vostri' : 'Masculine',
     'vostra' : 'Feminine',
-    'vostre' : 'Feminine'
+    'vostre' : 'Feminine',
     'egli' : 'Masculine',
     'esso' : 'Masculine',
     'lui' : 'Masculine',
     'ella' : 'Feminine',
     'essa' : 'Feminine',
     'lei' : 'Feminine',
-    'essi' : 'Masculine', <!-- Could refer to a mixed group -->
+    'essi' : 'Masculine',
     'esse' : 'Feminine',
     'al' : 'Masculine',
     'allo' : 'Masculine',
@@ -251,7 +245,7 @@
   function assignPronouns() {
     var langue = document.querySelector(languageClass);
     if (langue !== null) {
-      var result = String(langue.innerHTML)
+      var result = String(langue.innerHTML);
       switch(result) {
         case "French":
           myPronouns = frenchPronouns;
@@ -270,7 +264,6 @@
           break;
         default:
           myPronouns = null;
-          break;
       }
       return result;
     }
@@ -297,24 +290,26 @@
       case "Neuter":
         theElement.style.color = "Green";
         break;
-      default:
-        break;
     }
   }
 
   function checkSentenceHints() {
     var words = document.querySelectorAll(nameWord);
     var i;
+    var word;
+    var genderHint;
+    var genderFromHint;
+    var maybeGender;
     for(i = 0; i < words.length; i += 1) {        
-      var word = onlyTopText(words[i]);
-      var genderHint = words[i].querySelector(nameGenderHint);
+      word = onlyTopText(words[i]);
+      genderHint = words[i].querySelector(nameGenderHint);
       if (genderHint !== null) {
-        var genderFromHint = genderHint.getElementsByTagName("strong")[0];
+        genderFromHint = genderHint.getElementsByTagName("strong")[0];
         if (genderFromHint !== null) {
           assignColorForGender(words[i], String(genderFromHint.innerHTML));
         } // gender !== null
       } else { // word does not have a gender hint: could it be a pronoun?
-        var maybeGender = returnGenderIfPronoun(word);
+        maybeGender = returnGenderIfPronoun(word);
         if (maybeGender !== null) {
           assignColorForGender(words[i], maybeGender);
         }
@@ -323,12 +318,13 @@
   } // end checkSentenceHints()
 
   function checkMultipleChoice() {
-      var challengeJudgeTexts = document.querySelectorAll(challengeJudgeText)
+      var challengeJudgeTexts = document.querySelectorAll(challengeJudgeText);
       var j;
-      for(i = 0; i < challengeJudgeTexts.length; i += 1) {
-          var sentence = challengeJudgeTexts[i].innerHTML;
-          var sentenceWords = sentence.split(" ");
-          <!-- todo: find a way to encapsulate a word inside a colored element -->
+      var sentence;
+      var sentenceWords;
+      for(j = 0; j < challengeJudgeTexts.length; j += 1) {
+          sentence = challengeJudgeTexts[j].innerHTML;
+          sentenceWords = sentence.split(" ");
       }
   }
 
