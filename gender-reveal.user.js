@@ -40,7 +40,7 @@
   function assignColorForGender(theElement, theGender) {
     switch(theGender) {
       case "Masculine":
-        theElement.syle.color = "Blue";
+        theElement.style.color = "Blue";
         break;
       case "Feminine":
         theElement.style.color = "Pink";
