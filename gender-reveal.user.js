@@ -58,6 +58,12 @@
     var genderHint;
     var genderFromHint;
     var maybeGender;
+
+    var maybeTargetLanguage = assignPronouns();
+    if (maybeTargetLanguage !== null) { 
+        log("assigned target language as " + maybeTargetLanguage)
+    }
+
     for(i = 0; i < words.length; i += 1) {        
       word = onlyTopText(words[i]);
       genderHint = words[i].querySelector(nameGenderHint);
@@ -100,6 +106,6 @@
   }
 
   setInterval(checkDom, 100);
-  log("Gender reveal loaded for " + assignPronouns());
+  log("Gender reveal loaded");
 
 }) ();
