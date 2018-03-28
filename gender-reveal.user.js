@@ -59,7 +59,7 @@
     var genderFromHint;
     var maybeGender;
 
-    for(i = 0; i < words.length; i += 1) {        
+    for(i = 0; i < words.length; i += 1) {
       word = onlyTopText(words[i]);
       genderHint = words[i].querySelector(nameGenderHint);
       if (genderHint !== null) {
@@ -93,7 +93,7 @@
     try {
       if (maybeTargetLanguage === null) {
           maybeTargetLanguage = assignPronouns();
-          if (maybeTargetLanguage !== null) { 
+          if (maybeTargetLanguage !== null) {
             log("assigned target language as " + maybeTargetLanguage)
           }
       }
