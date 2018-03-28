@@ -1,6 +1,5 @@
-
-
-  var frenchPronouns = {
+var frenchPronouns = {
+    "WHOAMI" : "French",
     "un" : "Masculine",
     "une" : "Feminine",
     "le" : "Masculine",
@@ -23,9 +22,10 @@
     "quels" : "Masculine",
     "quelle" : "Feminine",
     "quelles" : "Feminine"
-  };
+};
 
-  var portuguesePronouns = {
+var portuguesePronouns = {
+    "WHOAMI" : "Portuguese",
     "um" : "Masculine",
     "uma" : "Feminine",
     "ele" : "Masculine",
@@ -84,9 +84,10 @@
     "vossa" : "Feminine",
     "vossos" : "Masculine",
     "vossas" : "Feminine"
-  };
+};
 
-  var spanishPronouns = {
+var spanishPronouns = {
+    "WHOAMI" : "Spanish",
     "un" : "Masculine",
     "una" : "Feminine",
     "mío" : "Masculine",
@@ -119,17 +120,19 @@
     "cuya" : "Feminine",
     "cuyos" : "Masculine",
     "cuyas" : "Feminine"
-  };
+};
 
-  var germanPronouns = {
+var germanPronouns = {
+    "WHOAMI" : "German",
     "er" : "Masculine",
     "ihn" : "Masculine",
     "ihrer" : "Feminine",
     "es" : "Neuter",
-    "das" : "Neuter",
-  };
+    "das" : "Neuter"
+};
 
-  var dutchPronouns = {
+var dutchPronouns = {
+    "WHOAMI" : "Dutch",
     "het" : "Neuter",
     "des" : "Masculine",
     "hij" : "Masculine",
@@ -137,9 +140,10 @@
     "zij" : "Feminine",
     "ze" : "Feminine",
     "haar" : "Feminine"
-  };
+};
 
-  var italianPronouns = {
+var italianPronouns = {
+    "WHOAMI" : "Italian",
     "il" : "Masculine",
     "lo" : "Masculine",
     "i" : "Masculine",
@@ -204,12 +208,12 @@
     "sui" : "Masculine",
     "sugli" : "Masculine",
     "sulle" : "Feminine"
-  };
+};
 
-  var myPronouns = null;
-  var languageClass = "span._386Yc";
+var myPronouns = null;
+var languageClass = "span._386Yc";
 
-  function assignPronouns() {
+function assignPronouns() {
     var langue = document.querySelector(languageClass);
     if (langue !== null) {
       var result = String(langue.innerHTML);
@@ -238,13 +242,12 @@
       return result;
     }
     return null;
-  }
+}
 
-  function returnGenderIfPronoun(possiblyAGenderedPronoun) {
+function returnGenderIfPronoun(possiblyAGenderedPronoun) {
     if (myPronouns !== null) {
-      var foundGender = myPronouns[possiblyAGenderedPronoun.toLowerCase()];
-      return foundGender;
+        return myPronouns[possiblyAGenderedPronoun.toLowerCase()];
+    } else {
+        return null;
     }
-
-    return null;
-  }
+}

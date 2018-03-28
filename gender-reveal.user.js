@@ -6,7 +6,7 @@
 // @require     language-specific.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.6
+// @version     1.7
 // @run-at      document-start
 // ==/UserScript==
 
@@ -37,17 +37,27 @@
     return texts.join("");
   }
 
-  function assignColorForGender(theElement, theGender) {
-    switch(theGender) {
-      case "Masculine":
-        theElement.style.color = "Blue";
-        break;
-      case "Feminine":
-        theElement.style.color = "Pink";
-        break;
-      case "Neuter":
-        theElement.style.color = "Green";
-        break;
+  var genderColors = {
+    "Masculine" : "Blue",
+    "Feminine" : "Pink",
+    "Neuter" : "Green"
+  };
+
+  function assignColorForGender(theElement, theGender) { 
+    var colorAssignment = genderColors[theGender];
+    if (colorAssignment !== null) {
+        if (theElement.style.color !== colorAssignment) {
+            theElement.style.color = colorAssignment;
+        }
+    }
+  }
+
+  function colorSpanForGender(theWord, theGenre) {
+    var colorAssignment = genderColors[theGenre];
+    if (colorAssignment !== null) {
+        return "<span style=\"color:" + colorAssignment + "\">" + theWord + "</span>";
+    } else {
+      return theWord;
     }
   }
 
@@ -79,22 +89,41 @@
   function checkMultipleChoice() {
       var challengeJudgeTexts = document.querySelectorAll(challengeJudgeText);
       var j;
+      var k;
       var sentence;
+      var reconstructedSentence;
+      var sentenceColoredWords;
       var sentenceWords;
+      var genderWordResult;
       for(j = 0; j < challengeJudgeTexts.length; j += 1) {
           sentence = challengeJudgeTexts[j].innerHTML;
+          if (sentence.includes("<")) {
+              continue; //We already colored the sentence 
+          }
+          sentenceColoredWords = [];
           sentenceWords = sentence.split(" ");
+          for(k = 0; k < sentenceWords.length; k += 1) {
+              genderWordResult = returnGenderIfPronoun(word);
+              if (genderWordResult !== null) {
+                  sentenceColoredWords.push(colorSpanForGender(sentenceWords[k], genderWordResult));
+              } else {
+                  sentenceColoredWords.push(sentenceWords[k]);  
+              }
+          }
+          reconstructedSentence = sentenceColoredWords.join(" ");
+          if (sentence !== reconstructedSentence) {
+              challengeJudgeTexts[j].innerHTML = reconstructedSentence;
+          }
       }
   }
 
-  var maybeTargetLanguage = null;
 
   function checkDom() {
     try {
-      if (maybeTargetLanguage === null) {
-          maybeTargetLanguage = assignPronouns();
-          if (maybeTargetLanguage !== null) {
-            log("assigned target language as " + maybeTargetLanguage)
+      if (myPronouns === null) {
+          assignPronouns();
+          if (myPronouns !== null) {
+            log("assigned target language as " + myPronouns["WHOAMI"])
           }
       }
 
@@ -103,6 +132,7 @@
       }
 
       checkSentenceHints();
+      checkMultipleChoice();
 
     } catch (e) {
       log(e);
@@ -110,6 +140,6 @@
   }
 
   setInterval(checkDom, 100);
-  log("Gender reveal loaded");
+  log("Gender reveal v1.7 loaded");
 
 }) ();
