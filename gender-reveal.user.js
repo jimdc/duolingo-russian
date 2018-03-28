@@ -98,7 +98,10 @@
       for(j = 0; j < challengeJudgeTexts.length; j += 1) {
           sentence = challengeJudgeTexts[j].innerHTML;
           if (sentence.includes("<")) {
+              log("Skipping already-processed choice " + sentence)
               continue; //We already colored the sentence 
+          } else {
+              log("Processing choice " + sentence)
           }
           sentenceColoredWords = [];
           sentenceWords = sentence.split(" ");

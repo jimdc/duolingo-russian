@@ -1,5 +1,6 @@
 var frenchPronouns = {
     "WHOAMI" : "French",
+    "ISO6391" : "fr",
     "un" : "Masculine",
     "une" : "Feminine",
     "le" : "Masculine",
@@ -26,6 +27,7 @@ var frenchPronouns = {
 
 var portuguesePronouns = {
     "WHOAMI" : "Portuguese",
+    "ISO6391" : "pt",
     "um" : "Masculine",
     "uma" : "Feminine",
     "ele" : "Masculine",
@@ -47,11 +49,15 @@ var portuguesePronouns = {
     "la" : "Feminine",
     "na" : "Feminine",
     "os" : "Masculine",
+    "dos" : "Masculine",
+    "dois" : "Masculine",
     "los" : "Masculine",
     "nos" : "Masculine",
     "as" : "Feminine",
     "las" : "Feminine",
     "nas" : "Feminine",
+    "das" : "Feminine",
+    "duas" : "Feminine",
     "mo" : "Masculine",
     "ma" : "Feminine",
     "mos" : "Masculine",
@@ -88,6 +94,7 @@ var portuguesePronouns = {
 
 var spanishPronouns = {
     "WHOAMI" : "Spanish",
+    "ISO6391" : "es",
     "un" : "Masculine",
     "una" : "Feminine",
     "mío" : "Masculine",
@@ -124,6 +131,7 @@ var spanishPronouns = {
 
 var germanPronouns = {
     "WHOAMI" : "German",
+    "ISO6391" : "de",
     "er" : "Masculine",
     "ihn" : "Masculine",
     "ihrer" : "Feminine",
@@ -133,6 +141,7 @@ var germanPronouns = {
 
 var dutchPronouns = {
     "WHOAMI" : "Dutch",
+    "ISO6391" : "nl",
     "het" : "Neuter",
     "des" : "Masculine",
     "hij" : "Masculine",
@@ -144,6 +153,7 @@ var dutchPronouns = {
 
 var italianPronouns = {
     "WHOAMI" : "Italian",
+    "ISO6391" : "it",
     "il" : "Masculine",
     "lo" : "Masculine",
     "i" : "Masculine",

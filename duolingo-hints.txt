@@ -72,11 +72,10 @@
 </span>
 
 <!-- 
-  Multiple choice prompt: "_3EaeX" is the class of the challenge-judge-text 
+  Multiple choice prompt for a sentence: "_3EaeX" is the class of the challenge-judge-text 
 -->
 
 <ul data-test="challenge-judge-options" class="_-YZ3">
-
   <li data-test="challenge-judge-item" class="V1ATi">
     <label class="_31nDg _386Rr _2QNyK">
       <div class="_35SUn _3pcg6">1</div><div class="BblGF"><input data-test="challenge-judge-checkbox" class="-rSGZ _3-rLl _3bCrI _33XIq" value="0" type="checkbox"></div>
@@ -97,5 +96,29 @@
   <div data-test="challenge-judge-text" class="_3EaeX">Ils ont habité dans cette ville entre dix ans.</div>
   </label>
   </li>
-
 </ul>
+
+<!--
+  One-word multiple choice: i.e. "Minha vó é ______." (1) alemão, (2) alemã
+  find input text in the textNode of _2jrvD _8X2Bp _3TFgA (not sure which are unique)
+-->
+
+<div class="_1Qsz_">
+
+  <ul class="_2i34a">
+    <li data-test="challenge-select" class="_2_7Fi">
+      <label class="_2JRFI _1-PLN _2QNyK _3xTz7 _2gM3V">
+        <div class="_1UMda _3pcg6">1</div>
+        <input type="radio" data-test="player-radio" value="0" class="_1gREG _2jrvD _8X2Bp _3TFgA"><!-- react-text: 9145 -->alemão<!-- /react-text --></label>
+    </li>
+  </ul>
+
+  <ul class="_2i34a">
+    <li data-test="challenge-select" class="_2_7Fi">
+      <label class="_3Dpup _386Rr _2QNyK _3xTz7 _2gM3V">
+        <div class="_1UMda _3pcg6">2</div>
+        <input type="radio" data-test="player-radio" value="1" class="hURU1 _2jrvD _8X2Bp _3TFgA"><!-- react-text: 9151 -->alemã<!-- /react-text --></label>
+    </li>
+  </ul>
+
+</div>
