@@ -238,7 +238,7 @@
 
   function returnGenderIfPronoun(possiblyAGenderedPronoun) {
     if (myPronouns !== null) {
-      var foundGender = myPronouns[possiblyAGenderedPronoun];
+      var foundGender = myPronouns[possiblyAGenderedPronoun.toLowerCase()];
       return foundGender;
     }
 
