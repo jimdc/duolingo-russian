@@ -233,7 +233,7 @@
       }
       return result;
     }
-    return "LanguageWasNull!";
+    return null;
   }
 
   function returnGenderIfPronoun(possiblyAGenderedPronoun) {

@@ -59,11 +59,6 @@
     var genderFromHint;
     var maybeGender;
 
-    var maybeTargetLanguage = assignPronouns();
-    if (maybeTargetLanguage !== null) { 
-        log("assigned target language as " + maybeTargetLanguage)
-    }
-
     for(i = 0; i < words.length; i += 1) {        
       word = onlyTopText(words[i]);
       genderHint = words[i].querySelector(nameGenderHint);
@@ -94,6 +89,11 @@
 
   function checkDom() {
     try {
+      var maybeTargetLanguage = assignPronouns();
+      if (maybeTargetLanguage !== null) { 
+        log("assigned target language as " + maybeTargetLanguage)
+      }
+
       if (document.getElementsByClassName(classNameExercise).length !== 1) {
         return; //No exercise active (<1), or during transition animation between two exercises (>1)
       }
