@@ -6,7 +6,7 @@
 // @require     language-specific.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.4
+// @version     1.5
 // @run-at      document-start
 // ==/UserScript==
 
