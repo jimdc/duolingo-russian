@@ -87,11 +87,15 @@
       }
   }
 
+  var maybeTargetLanguage = null;
+
   function checkDom() {
     try {
-      var maybeTargetLanguage = assignPronouns();
-      if (maybeTargetLanguage !== null) { 
-        log("assigned target language as " + maybeTargetLanguage)
+      if (maybeTargetLanguage === null) {
+          maybeTargetLanguage = assignPronouns();
+          if (maybeTargetLanguage !== null) { 
+            log("assigned target language as " + maybeTargetLanguage)
+          }
       }
 
       if (document.getElementsByClassName(classNameExercise).length !== 1) {
