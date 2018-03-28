@@ -125,7 +125,8 @@
     "er" : "Masculine",
     "ihn" : "Masculine",
     "ihrer" : "Feminine",
-    "es" : "Neuter"
+    "es" : "Neuter",
+    "das" : "Neuter",
   };
 
   var dutchPronouns = {
@@ -227,6 +228,9 @@
           break;
         case "Dutch":
           myPronouns = dutchPronouns;
+          break;
+        case "Italian":
+          myPronouns = italianPronouns;
           break;
         default:
           myPronouns = null;
