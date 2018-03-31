@@ -66,6 +66,8 @@ var portuguesePronouns = {
     "mas" : "Feminine",
     "to" : "Masculine",
     "ta" : "Feminine",
+    "do" : "Masculine",
+    "da" : "Feminine",
     "tos" : "Masculine",
     "tas" : "Feminine",
     "lho" : "Masculine",
