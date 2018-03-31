@@ -1,5 +1,5 @@
 # gender-reveal
-Color-codes words in [Duolingo](http://www.duolingo.com/) by grammatical gender in target-to-source sentence challenges. Source information comes from hover hints and certain languages' gendered pronouns.
+Color-codes words in [Duolingo](http://www.duolingo.com/) or [translate-jokes](https://github.com/jimdc/translate-jokes) by grammatical gender in target-to-source sentence challenges. Source information comes from hover hints and certain languages' gendered pronouns.
 
 ![Portuguese example](a_ponte.png)
 

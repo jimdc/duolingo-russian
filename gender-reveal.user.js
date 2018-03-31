@@ -6,11 +6,12 @@
 // @require     language-specific.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.7
+// @version     1.8
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
+  var version = 1.8
 
   // React/Duolingo obfuscated class names
   var classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
@@ -68,6 +69,23 @@
     var genderHint;
     var genderFromHint;
     var maybeGender;
+
+    if (myPronouns !== null) {
+      var languageCode = myPronouns["ISO6391"];
+      if (languageCode !== null) {
+        var textAreas = document.getElementsByTagName("textarea");    
+        if (textAreas !== null) {
+            var i;
+            for(i = 0; i < textAreas.length; i++)
+            {
+                var textArea = textAreas[i];
+                if (textArea.lang === languageCode) {
+                    return; //The prompt is in English; don't highlight
+                }
+            }
+        }
+      }
+    }
 
     for(i = 0; i < words.length; i += 1) {
       word = onlyTopText(words[i]);
@@ -143,6 +161,6 @@
   }
 
   setInterval(checkDom, 100);
-  log("Gender reveal v1.7 loaded");
+  log("Gender reveal v" + version + " loaded");
 
 }) ();

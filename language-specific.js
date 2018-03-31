@@ -47,6 +47,8 @@ var portuguesePronouns = {
     "no" : "Masculine",
     "a" : "Feminine",
     "la" : "Feminine",
+    "pelo" : "Masculine",
+    "pela" : "Feminine",
     "na" : "Feminine",
     "os" : "Masculine",
     "dos" : "Masculine",
