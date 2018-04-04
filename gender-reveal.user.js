@@ -6,12 +6,12 @@
 // @require     language-specific.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.9
+// @version     0.1
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
-  const version = 1.9
+  const version = 0.1
 
   // React/Duolingo obfuscated class names
   const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
@@ -143,8 +143,6 @@
           checkSentenceHints();
           checkMultipleChoice();
           exercise.setAttribute("gr-processed", "true");
-        } else {
-          console.log(`Already processed this challenge.`);
         }
       }
     } catch (e) {
