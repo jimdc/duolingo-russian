@@ -1,4 +1,4 @@
-var frenchPronouns = {
+const frenchPronouns = {
     "WHOAMI" : "French",
     "ISO6391" : "fr",
     "un" : "Masculine",
@@ -25,7 +25,7 @@ var frenchPronouns = {
     "quelles" : "Feminine"
 };
 
-var portuguesePronouns = {
+const portuguesePronouns = {
     "WHOAMI" : "Portuguese",
     "ISO6391" : "pt",
     "um" : "Masculine",
@@ -96,7 +96,7 @@ var portuguesePronouns = {
     "vossas" : "Feminine"
 };
 
-var spanishPronouns = {
+const spanishPronouns = {
     "WHOAMI" : "Spanish",
     "ISO6391" : "es",
     "un" : "Masculine",
@@ -133,7 +133,7 @@ var spanishPronouns = {
     "cuyas" : "Feminine"
 };
 
-var germanPronouns = {
+const germanPronouns = {
     "WHOAMI" : "German",
     "ISO6391" : "de",
     "er" : "Masculine",
@@ -143,7 +143,7 @@ var germanPronouns = {
     "das" : "Neuter"
 };
 
-var dutchPronouns = {
+const dutchPronouns = {
     "WHOAMI" : "Dutch",
     "ISO6391" : "nl",
     "het" : "Neuter",
@@ -155,7 +155,7 @@ var dutchPronouns = {
     "haar" : "Feminine"
 };
 
-var italianPronouns = {
+const italianPronouns = {
     "WHOAMI" : "Italian",
     "ISO6391" : "it",
     "il" : "Masculine",
@@ -224,13 +224,13 @@ var italianPronouns = {
     "sulle" : "Feminine"
 };
 
-var myPronouns = null;
-var languageClass = "span._386Yc";
+let myPronouns = null;
+const languageClass = "span._386Yc";
 
 function assignPronouns() {
-    var langue = document.querySelector(languageClass);
+    const langue = document.querySelector(languageClass);
     if (langue !== null) {
-      var result = String(langue.innerHTML);
+      const result = String(langue.innerHTML);
       switch(result) {
         case "French":
           myPronouns = frenchPronouns;

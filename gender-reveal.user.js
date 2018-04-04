@@ -6,28 +6,28 @@
 // @require     language-specific.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.8
+// @version     1.9
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
-  var version = 1.8
+  const version = 1.9
 
   // React/Duolingo obfuscated class names
-  var classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
-  var nameGenderHint = "td._3s3uv";
-  var nameWord = "span._3_AmQ";
-  var challengeJudgeText = "div._3EaeX";
+  const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
+  const nameGenderHint = "td._3s3uv";
+  const nameWord = "span._3_AmQ";
+  const challengeJudgeText = "div._3EaeX";
 
-  var realConsole = console;
-  var realConsoleLog = console.log;
+  const realConsole = console;
+  const realConsoleLog = console.log;
   function log(s) {
     realConsoleLog.call(realConsole, s);
   }
 
-  function onlyTopText(elemento) {
-    var child = elemento.firstChild;
-    var texts = [];
+  function onlyTopText(element) {
+    let child = element.firstChild;
+    let texts = [];
     while(child) {
       if (child.nodeType === 3) {
         texts.push(child.data);
@@ -38,47 +38,39 @@
     return texts.join("");
   }
 
-  var genderColors = {
+  const genderColors = {
     "Masculine" : "Blue",
     "Feminine" : "Pink",
     "Neuter" : "Green"
   };
 
-  function assignColorForGender(theElement, theGender) { 
-    var colorAssignment = genderColors[theGender];
+  function assignColorForGender(element, gender) { 
+    const colorAssignment = genderColors[gender];
     if (colorAssignment !== null) {
-        if (theElement.style.color !== colorAssignment) {
-            theElement.style.color = colorAssignment;
+        if (element.style.color !== colorAssignment) {
+            element.style.color = colorAssignment;
         }
     }
   }
 
-  function colorSpanForGender(theWord, theGenre) {
-    var colorAssignment = genderColors[theGenre];
+  function colorSpanForGender(word, gender) {
+    const colorAssignment = genderColors[gender];
     if (colorAssignment !== null) {
-        return "<span style=\"color:" + colorAssignment + "\">" + theWord + "</span>";
+        return `<span style="color:${colorAssignment};">${word}</span>`;
     } else {
-      return theWord;
+      return word;
     }
   }
 
   function checkSentenceHints() {
-    var words = document.querySelectorAll(nameWord);
-    var i;
-    var word;
-    var genderHint;
-    var genderFromHint;
-    var maybeGender;
-
     if (myPronouns !== null) {
-      var languageCode = myPronouns["ISO6391"];
+      const languageCode = myPronouns["ISO6391"];
       if (languageCode !== null) {
-        var textAreas = document.getElementsByTagName("textarea");    
+        const textAreas = document.getElementsByTagName("textarea");    
         if (textAreas !== null) {
-            var i;
-            for(i = 0; i < textAreas.length; i++)
+            for(let i = 0; i < textAreas.length; i++)
             {
-                var textArea = textAreas[i];
+                const textArea = textAreas[i];
                 if (textArea.lang === languageCode) {
                     return; //The prompt is in English; don't highlight
                 }
@@ -87,16 +79,17 @@
       }
     }
 
-    for(i = 0; i < words.length; i += 1) {
-      word = onlyTopText(words[i]);
-      genderHint = words[i].querySelector(nameGenderHint);
+    const words = document.querySelectorAll(nameWord);
+    for(let i = 0; i < words.length; i += 1) {
+      let word = onlyTopText(words[i]);
+      let genderHint = words[i].querySelector(nameGenderHint);
       if (genderHint !== null) {
-        genderFromHint = genderHint.getElementsByTagName("strong")[0];
+        let genderFromHint = genderHint.getElementsByTagName("strong")[0];
         if (genderFromHint !== null) {
           assignColorForGender(words[i], String(genderFromHint.innerHTML));
         } // gender !== null
       } else { // word does not have a gender hint: could it be a pronoun?
-        maybeGender = returnGenderIfPronoun(word);
+        let maybeGender = returnGenderIfPronoun(word);
         if (maybeGender !== null) {
           assignColorForGender(words[i], maybeGender);
         }
@@ -105,33 +98,27 @@
   } // end checkSentenceHints()
 
   function checkMultipleChoice() {
-      var challengeJudgeTexts = document.querySelectorAll(challengeJudgeText);
-      var j;
-      var k;
-      var sentence;
-      var reconstructedSentence;
-      var sentenceColoredWords;
-      var sentenceWords;
-      var genderWordResult;
-      for(j = 0; j < challengeJudgeTexts.length; j += 1) {
-          sentence = challengeJudgeTexts[j].innerHTML;
+      const challengeJudgeTexts = document.querySelectorAll(challengeJudgeText);
+
+      for(let j = 0; j < challengeJudgeTexts.length; j += 1) {
+          const sentence = challengeJudgeTexts[j].innerHTML;
           if (sentence.includes("<")) {
-              log("Skipping already-processed choice " + sentence)
+              log(`Skipping already-processed choice ${sentence}`)
               continue; //We already colored the sentence 
           } else {
-              log("Processing choice " + sentence)
+              log(`Processing choice ${sentence}`)
           }
-          sentenceColoredWords = [];
-          sentenceWords = sentence.split(" ");
-          for(k = 0; k < sentenceWords.length; k += 1) {
-              genderWordResult = returnGenderIfPronoun(word);
+          let sentenceColoredWords = [];
+          let sentenceWords = sentence.split(" ");
+          for(let k = 0; k < sentenceWords.length; k += 1) {
+              const genderWordResult = returnGenderIfPronoun(word);
               if (genderWordResult !== null) {
                   sentenceColoredWords.push(colorSpanForGender(sentenceWords[k], genderWordResult));
               } else {
                   sentenceColoredWords.push(sentenceWords[k]);  
               }
           }
-          reconstructedSentence = sentenceColoredWords.join(" ");
+          const reconstructedSentence = sentenceColoredWords.join(" ");
           if (sentence !== reconstructedSentence) {
               challengeJudgeTexts[j].innerHTML = reconstructedSentence;
           }
@@ -144,7 +131,7 @@
       if (myPronouns === null) {
           assignPronouns();
           if (myPronouns !== null) {
-            log("assigned target language as " + myPronouns["WHOAMI"])
+            log(`assigned target language as ${myPronouns["WHOAMI"]}`)
           }
       }
 
@@ -161,6 +148,6 @@
   }
 
   setInterval(checkDom, 100);
-  log("Gender reveal v" + version + " loaded");
+  log(`Gender reveal v${version} loaded`);
 
 }) ();
