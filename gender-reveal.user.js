@@ -137,11 +137,16 @@
 
       if (document.getElementsByClassName(classNameExercise).length !== 1) {
         return; //No exercise active (<1), or during transition animation between two exercises (>1)
+      } else {
+        const exercise = document.querySelector(`.${classNameExercise}`);
+        if (!exercise.hasAttribute("gr-processed")) {
+          checkSentenceHints();
+          checkMultipleChoice();
+          exercise.setAttribute("gr-processed", "true");
+        } else {
+          console.log(`Already processed this challenge.`);
+        }
       }
-
-      checkSentenceHints();
-      checkMultipleChoice();
-
     } catch (e) {
       log(e);
     }
