@@ -1,7 +1,7 @@
 # gender-reveal
 Color-codes words in [Duolingo](http://www.duolingo.com/) or [translate-jokes](https://github.com/jimdc/translate-jokes) by grammatical gender in target-to-source sentence challenges. Source information comes from hover hints and certain languages' gendered pronouns.
 
-![Portuguese example](a_ponte.png)
+![Portuguese example](example.png)
 
 # installation
 You will need to have installed [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/) on Firefox or [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=en) on Chrome. Then go to [the userscript](gender-reveal.user.js) and click on "raw".
