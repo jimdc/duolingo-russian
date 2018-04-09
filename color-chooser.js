@@ -39,7 +39,7 @@
       };
 
       for (var i=0; i<document.styleSheets.length; i++){
-          var rules = document.styleSheets[i].rules || document.styleSheets[i].cssRules;
+          var rules = document.styleSheets[i].hasOwnProperty('rules') || document.styleSheets[i].cssRules;
           if (hasRule(selector, rules)){
               return true;
           }
