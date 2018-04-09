@@ -4,14 +4,15 @@
 // @description Reveal grammatical gender on DuoLingo
 // @include     https://*.duolingo.com/*
 // @require     language-specific.js
+// @require     color-chooser.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     0.1
+// @version     0.2
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
-  const version = 0.1
+  const version = 0.2
 
   // React/Duolingo obfuscated class names
   const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
@@ -36,30 +37,6 @@
     }
 
     return texts.join("");
-  }
-
-  const genderColors = {
-    "Masculine" : "Blue",
-    "Feminine" : "Pink",
-    "Neuter" : "Green"
-  };
-
-  function assignColorForGender(element, gender) { 
-    const colorAssignment = genderColors[gender];
-    if (colorAssignment !== null) {
-        if (element.style.color !== colorAssignment) {
-            element.style.color = colorAssignment;
-        }
-    }
-  }
-
-  function colorSpanForGender(word, gender) {
-    const colorAssignment = genderColors[gender];
-    if (colorAssignment !== null) {
-        return `<span style="color:${colorAssignment};">${word}</span>`;
-    } else {
-      return word;
-    }
   }
 
   function checkSentenceHints() {
