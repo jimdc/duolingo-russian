@@ -12,7 +12,7 @@
 // ==/UserScript==
 
 (function() {
-  const version = 0.2
+  const version = 0.3
 
   // React/Duolingo obfuscated class names
   const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
