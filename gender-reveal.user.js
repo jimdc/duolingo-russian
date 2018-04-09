@@ -115,7 +115,7 @@
       if (document.getElementsByClassName(classNameExercise).length !== 1) {
         return; //No exercise active (<1), or during transition animation between two exercises (>1)
       } else {
-        setGenderColorStyle();         
+        //setGenderColorStyle();         
 
         const exercise = document.querySelector(`.${classNameExercise}`);
         if (!exercise.hasAttribute("gr-processed")) {
