@@ -7,7 +7,7 @@
 // @require     color-chooser.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     0.2
+// @version     0.3
 // @run-at      document-start
 // ==/UserScript==
 
@@ -88,7 +88,7 @@
           let sentenceColoredWords = [];
           let sentenceWords = sentence.split(" ");
           for(let k = 0; k < sentenceWords.length; k += 1) {
-              const genderWordResult = returnGenderIfPronoun(word);
+              const genderWordResult = returnGenderIfPronoun(sentenceWords[k]);
               if (genderWordResult !== null) {
                   sentenceColoredWords.push(colorSpanForGender(sentenceWords[k], genderWordResult));
               } else {
