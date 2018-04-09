@@ -64,13 +64,18 @@
   };
 
   function setGenderColorStyle() {
-    if (!hasStyleRule(`.${genderColors[0]}`)) {
+    if (!hasStyleRule(".Masculine")) {
+      console.log('has . Masculine defined');
+    } else {
+      console.log('does not have .Masculine defined');
+    }
+    /*if (!hasStyleRule(`.${genderColors[0]}`)) {
       let newStyle = '';
       for(let key in genderColors) {
         newStyle += `.${key} { color:${genderColors[key]}; } `;  
       }
       console.info(`Applying global style ${newStyle}`);  
-    }
+    }*/
   }
 
   function assignColorForGender(element, gender) { 
