@@ -33,6 +33,7 @@
           }
           return false;
       };
+  }
 
   const genderColors = {
     "Masculine" : "Blue",
