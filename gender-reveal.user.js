@@ -7,12 +7,12 @@
 // @require     color-chooser.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     0.3
+// @version     0.5
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
-  const version = 0.3
+  const version = 0.5
 
   // React/Duolingo obfuscated class names
   const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
@@ -115,6 +115,8 @@
       if (document.getElementsByClassName(classNameExercise).length !== 1) {
         return; //No exercise active (<1), or during transition animation between two exercises (>1)
       } else {
+        setGenderColorStyle();         
+
         const exercise = document.querySelector(`.${classNameExercise}`);
         if (!exercise.hasAttribute("gr-processed")) {
           checkSentenceHints();
