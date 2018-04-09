@@ -33,7 +33,29 @@
           }
           return false;
       };
-  }
+
+      var trim = function(str){
+          return str.replace(/^\s*/, "").replace(/\s*$/, "");
+      };
+
+      for (var i=0; i<document.styleSheets.length; i++){
+          var rules = document.styleSheets[i].rules || document.styleSheets[i].cssRules;
+          if (hasRule(selector, rules)){
+              return true;
+          }
+
+          var imports = document.styleSheets[i].imports;
+          if (imports){
+              for (var j=0; j<imports.length; j++){
+                  rules = imports[j].rules || imports[j].cssRules;
+                  if (hasRule(selector, rules)) return true;
+              }
+          }
+      } 
+
+      return false;
+  };
+
 
   const genderColors = {
     "Masculine" : "Blue",
