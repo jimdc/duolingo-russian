@@ -40,8 +40,11 @@
   }
 
   function checkSentenceHints() {
-    if (myPronouns !== null) {
-      const languageCode = myPronouns["ISO6391"];
+
+    let sourceToTargetLangPrompt = false;
+
+    if (targetLanguagePronouns !== null) {
+      const languageCode = targetLanguagePronouns["ISO6391"];
       if (languageCode !== null) {
         const textAreas = document.getElementsByTagName("textarea");    
         if (textAreas !== null) {
@@ -49,11 +52,15 @@
             {
                 const textArea = textAreas[i];
                 if (textArea.lang === languageCode) {
-                    return; //The prompt is in English; don't highlight
+                    sourceToTargetLangPrompt = true;
                 }
             }
         }
       }
+    }
+
+    if (sourceToTargetLangPrompt === true) {
+        return; //To be able to handle cases like this, rest of the function should be more dynamic
     }
 
     const words = document.querySelectorAll(nameWord);
@@ -105,10 +112,10 @@
 
   function checkDom() {
     try {
-      if (myPronouns === null) {
+      if (targetLanguagePronouns === null) {
           assignPronouns();
-          if (myPronouns !== null) {
-            log(`assigned target language as ${myPronouns["WHOAMI"]}`)
+          if (targetLanguagePronouns !== null) {
+            log(`assigned target language as ${targetLanguagePronouns["WHOAMI"]}`)
           }
       }
 

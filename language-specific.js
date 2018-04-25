@@ -1,3 +1,16 @@
+const englishPronouns = {
+    "WHOAMI" : "English",
+    "ISO6391" : "en",
+    "he" : "Masculine",
+    "him" : "Masculine",
+    "his" : "Masculine",
+    "himself" : "Masculine",
+    "she" : "Feminine",
+    "her" : "Feminine",
+    "hers" : "Feminine",
+    "herself" : "Feminine"
+};
+
 const frenchPronouns = {
     "WHOAMI" : "French",
     "ISO6391" : "fr",
@@ -224,34 +237,37 @@ const italianPronouns = {
     "sulle" : "Feminine"
 };
 
-let myPronouns = null;
-const languageClass = "span._386Yc";
+let targetLanguagePronouns = null;
+const targetLanguageClass = "span._386Yc";
 
-function assignPronouns() {
-    const langue = document.querySelector(languageClass);
+function assignTargetPronouns() {
+    const langue = document.querySelector(targetLanguageClass);
     if (langue !== null) {
       const result = String(langue.innerHTML);
       switch(result) {
+        case "English":
+          targetLanguagePronouns = englishPronouns;
+          break;
         case "French":
-          myPronouns = frenchPronouns;
+          targetLanguagePronouns = frenchPronouns;
           break;
         case "Portuguese":
-          myPronouns = portuguesePronouns;
+          targetLanguagePronouns = portuguesePronouns;
           break;
         case "Spanish":
-          myPronouns = spanishPronouns;
+          targetLanguagePronouns = spanishPronouns;
           break;
         case "German":
-          myPronouns = germanPronouns;
+          targetLanguagePronouns = germanPronouns;
           break;
         case "Dutch":
-          myPronouns = dutchPronouns;
+          targetLanguagePronouns = dutchPronouns;
           break;
         case "Italian":
-          myPronouns = italianPronouns;
+          targetLanguagePronouns = italianPronouns;
           break;
         default:
-          myPronouns = null;
+          targetLanguagePronouns = null;
       }
       return result;
     }
@@ -259,8 +275,8 @@ function assignPronouns() {
 }
 
 function returnGenderIfPronoun(possiblyAGenderedPronoun) {
-    if (myPronouns !== null) {
-        return myPronouns[possiblyAGenderedPronoun.toLowerCase()];
+    if (targetLanguagePronouns !== null) {
+        return targetLanguagePronouns[possiblyAGenderedPronoun.toLowerCase()];
     } else {
         return null;
     }
