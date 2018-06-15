@@ -113,7 +113,7 @@
   function checkDom() {
     try {
       if (targetLanguagePronouns === null) {
-          assignPronouns();
+          assignTargetPronouns();
           if (targetLanguagePronouns !== null) {
             log(`assigned target language as ${targetLanguagePronouns["WHOAMI"]}`)
           }
