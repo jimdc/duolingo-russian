@@ -1,10 +1,14 @@
 # gender-reveal
-Color-codes words in [Duolingo](http://www.duolingo.com/) or [translate-jokes](https://github.com/jimdc/translate-jokes) by grammatical gender in target-to-source sentence challenges. Source information comes from hover hints and certain languages' gendered pronouns.
+Color-codes words in [Duolingo](http://www.duolingo.com/) or [translate-jokes](https://github.com/jimdc/translate-jokes) by grammatical gender in target-to-source sentence challenges. Source information comes from:
 
+1. hover hints (sentence exercises only)
+2. [gendered pronouns](#pronouns) (en, fr, pt, es, de, nl, it)
+3. word-ending analysis (Spanish-only, experimental)
+
+Sentence translation example (en-pt):
 ![Portuguese example](example.png)
 
-Recognition of words' genders in multiple choice exercises is under development.
-
+Multiple choice exercise example (en-es):
 ![Spanish example](multiplechoice.png)
 
 # installation

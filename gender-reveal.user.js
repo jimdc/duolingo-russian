@@ -3,11 +3,13 @@
 // @namespace   genderreveal
 // @description Reveal grammatical gender on DuoLingo
 // @include     https://*.duolingo.com/*
+// @require     gendered-pronouns.js
+// @require     suffix-analysis.js
 // @require     language-specific.js
 // @require     color-chooser.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.0
+// @version     1.1
 // @run-at      document-start
 // ==/UserScript==
 
@@ -112,10 +114,10 @@
 
   function checkDom() {
     try {
-      if (targetLanguagePronouns === null) {
-          assignTargetPronouns();
-          if (targetLanguagePronouns !== null) {
-            log(`assigned target language as ${targetLanguagePronouns["WHOAMI"]}`)
+      if (targetLanguage === null) {
+          if (assignTargetLanguage() !== null) {
+              assignTargetPronouns();
+              log(`global assigned ${targetLanguage} (pronouns: ${targetLanguagePronouns["WHOAMI"]}, suffixes: ${targetLanguageSuffixes})`)
           }
       }
 
