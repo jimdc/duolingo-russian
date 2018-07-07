@@ -86,7 +86,7 @@ function assignTargetPronouns() {
         default:
           targetLanguagePronouns = null;
       }
-      return result;
+      return targetLanguage;
     }
     return null;
 }

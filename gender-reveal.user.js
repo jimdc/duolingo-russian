@@ -9,12 +9,12 @@
 // @require     color-chooser.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.3
+// @version     1.4
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
-  const version = 1.3
+  const version = 1.4
 
   // React/Duolingo obfuscated class names
   const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
