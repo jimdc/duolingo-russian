@@ -22,6 +22,10 @@ const frenchExceptionallyFeminine = ['eau', 'peau', 'couleur', 'valeur', 'longue
 const frenchExceptionallyCommon = ['mémoire', 'critique', 'mode', 'moule', 'livre', 'tour', 'poste'];
 
 /* -on not after s/ç, and -é only after C(C=t). not including "if animate" ail, eil, euil, ueil, ing */
-const frenchMasculineEndings = ['an', 'and', 'ant', 'ent', 'in', 'int', 'om', 'ond', 'ont', 'on', 'é', 'eau', 'au', 'aud,' 'aut', 'o', 'os', 'ot', 'ai', 'ais', 'ait', 'es', 'et', 'ou', 'out', 'oux', 'i', 'il', 'it', 'is', 'y', 'at', 'as', 'ois', 'oit', 'u', 'us', 'ut', 'eu', 'er', 'age,' 'ege', 'eme', 'ome', 'ôme', 'aume', 'isme', 'as', 'is', 'os', 'us', 'ex', 'it', 'est', 'al', 'el', 'il', 'ol', 'eul', 'all', 'if', 'ef', 'ac', 'ic', 'oc', 'uc', 'am', 'um', 'en', 'air', 'er', 'erf', 'ert', 'ar', 'arc', 'ars', 'art', 'our', 'ours', 'or,' 'ord', 'ors', 'ort', 'ir', 'oir', 'eur'];
+const frenchMasculineEndings = ['an', 'and', 'ant', 'ent', 'in', 'int', 'om', 'ond', 'ont', 'on', 'é', 'eau', 'au', 'aud', 'aut', 
+'o', 'os', 'ot', 'ai', 'ais', 'ait', 'es', 'et', 'ou', 'out', 'oux', 'i', 'il', 'it', 'is', 'y', 'at', 'as', 'ois', 
+'oit', 'u', 'us', 'ut', 'eu', 'er', 'age', 'ege', 'eme', 'ome', 'ôme', 'aume', 'isme', 'as', 'is', 'os', 'us', 
+'ex', 'it', 'est', 'al', 'el', 'il', 'ol', 'eul', 'all', 'if', 'ef', 'ac', 'ic', 'oc', 'uc', 'am', 'um', 'en', 'air', 
+'er', 'erf', 'ert', 'ar', 'arc', 'ars', 'art', 'our', 'ours', 'or', 'ord', 'ors', 'ort', 'ir', 'oir', 'eur'];
 
 const frenchFeminineEndings = ['aie', 'oue', 'eue', 'ion', 'te', '`ee', 'ie', 'ue', 'asse', 'ace', 'esse', 'ece', 'aisse', 'isse', 'ice', 'ousse', 'ance', 'anse', 'ence', 'once', 'enne', 'onne', 'une', 'ine', 'aine', 'eine', 'erne', 'ande', 'ende', 'onde', 'ade', 'ude', 'arde', 'orde', 'euse', 'ouse', 'ase', 'aise', 'ese', 'oise', 'ise', 'yse', 'ose', 'use', 'ache', 'iche', 'eche', 'oche', 'uche', 'ouche', 'anche', 'ave', 'eve', 'ive', 'iere', 'ure', 'eure', 'ette', 'ete', '^ete', 'atte', 'otte', 'oute', 'orte', 'ante', 'ente', 'inte', 'onte', 'alle', 'elle', 'ille', 'olle', 'aille', 'eille', 'ouille', 'appe', 'ampe', 'ombe', 'igue'];

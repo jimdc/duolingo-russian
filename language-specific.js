@@ -24,6 +24,7 @@ function assignTargetLanguage() {
 
 function assignTargetSuffixes() {
     if (targetLanguage !== null) {
+        switch(targetLanguage) {
         case "Spanish":
             targetExceptionallyMasculine = spanishExceptionallyMasculine;
             targetExceptionallyFeminine = spanishExceptionallyFeminine;
@@ -40,6 +41,7 @@ function assignTargetSuffixes() {
             break;
         default:
             break;
+      }
     }
 }
 
