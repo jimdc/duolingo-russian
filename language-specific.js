@@ -16,7 +16,7 @@ function assignTargetLanguage() {
     if (languageSelector !== null) {
         const result = String(languageSelector.innerHTML);
         targetLanguage = result;
-        return assignTargetPronouns(targLang);
+        return assignTargetPronouns();
     }
 
     return result;
