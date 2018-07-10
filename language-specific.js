@@ -16,9 +16,10 @@ function assignTargetLanguage() {
     if (languageSelector !== null) {
         const result = String(languageSelector.innerHTML);
         targetLanguage = result;
+        return result;
     }
 
-    return result;
+    return null;
 }
 
 function assignTargetSuffixes() {
