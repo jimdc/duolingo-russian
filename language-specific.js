@@ -5,6 +5,7 @@ let targetLanguage = null;
 /* while the pronouns are based on a more free-floating gender system, suffixes are bit more hardcoded */
 let targetExceptionallyMasculine = null;
 let targetExceptionallyFeminine = null;
+let targetExceptionallyCommon = null;
 let targetMasculineEndings = null;
 let targetFeminineEndings = null;
 
@@ -28,6 +29,7 @@ function assignTargetSuffixes() {
         case "Spanish":
             targetExceptionallyMasculine = spanishExceptionallyMasculine;
             targetExceptionallyFeminine = spanishExceptionallyFeminine;
+            targetExceptionallyCommon = spanishExceptionallyCommon;
             targetMasculineEndings = spanishMasculineEndings;
             targetFeminineEndings = spanishFeminineEndings;
             targetLanguageSuffixes = "Spanish";
@@ -35,6 +37,7 @@ function assignTargetSuffixes() {
         case "French":
             targetExceptionallyMasculine = frenchExceptionallyMasculine;
             targetExceptionallyFeminine = frenchExceptionallyFeminine;
+            targetExceptionallyCommon = frenchExceptionallyCommon;
             targetMasculineEndings = frenchMasculineEndings;
             targetFeminineEndings = frenchFeminineEndings;
             targetLanguageSuffixes = "French";
@@ -51,12 +54,52 @@ function returnGenderByAnalysis(word) {
 
         if (targetExceptionallyMasculine.indexOf(lowerCaseWord) !== -1) return "Masculine";
         if (targetExceptionallyFeminine.indexOf(lowerCaseWord) !== -1) return "Feminine";
+        if (targetExceptionallyCommon.indexOf(lowerCaseWord) !== -1) return "Neuter"; //todo: something else with common words...
 
-        /* todo: iterate through masculineEndings and feminineEndings, see which ending is longer */
+        let endings = [];
 
-    } else {
-        return null;
+        for(let i = 0; i < targetMasculineEndings.length; i++) {
+            if (lowerCaseWord.endsWith(targetMasculineEndings[i])) {
+                endings.push(targetMasculineEndings[i]);
+            }
+        }
+
+        for(let i = 0; i < targetFeminineEndings.length; i++) {
+            if (lowerCaseWord.endsWith(targetFeminineEndings[i])) {
+                endings.push(targetFeminineEndings[i]);
+            }
+        }
+
+        const longest_ending = timo_longest(endings);
+        if (containsObject(longest_ending, targetMasculineEndings)) return "Masculine";
+        if (containsObject(longest_ending, targetFeminineEndings)) return "Feminine";
     }
+
+    return null;
+}
+
+function containsObject(obj, list) {
+    var i;
+    for (i = 0; i < list.length; i++) {
+        if (list[i] === obj) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/* longest in array optimized for speed, from
+https://stackoverflow.com/questions/6521245/finding-longest-string-in-array/12548884#12548884 */
+function timo_longest(a) {
+  var c = 0, d = 0, l = 0, i = a.length;
+  if (i) while (i--) {
+    d = a[i].length;
+    if (d > c) {
+      l = i; c = d;
+    }
+  }
+  return a[l];
 }
 
 function assignTargetPronouns() {

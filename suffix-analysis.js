@@ -10,6 +10,8 @@ const spanishMasculineEndings = ['o', 'á', 'é', 'í', 'ó', 'ú', 'ma', 'pa', 
 
 const spanishFeminineEndings = ['a', 'd', 'z', 'ión'];
 
+const spanishExceptionallyCommon = [];
+
 /* In the case of double match like 'a' and 'ma', longer ending takes precedence */
 
 /* Source list from https://github.com/jimdc/gender-reveal/issues/8, exceptions list from https://www.italki.com/article/253/gender-in-french-the-cheat-sheet */

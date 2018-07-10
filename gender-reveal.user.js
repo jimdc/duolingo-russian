@@ -9,12 +9,12 @@
 // @require     color-chooser.js
 // @namespace   https://github.com/jimdc/gender-reveal
 // @updateURL   https://github.com/jimdc/gender-reveal/raw/master/gender-reveal.user.js
-// @version     1.6
+// @version     1.7
 // @run-at      document-start
 // ==/UserScript==
 
 (function() {
-  const version = 1.6
+  const version = 1.7
 
   // React/Duolingo obfuscated class names
   const classNameExercise = "_1Y5M_"; // Div enclosing all controls of an exercise
@@ -74,8 +74,10 @@
         if (genderFromHint !== null) {
           assignColorForGender(words[i], String(genderFromHint.innerHTML));
         } // gender !== null
-      } else { // word does not have a gender hint: could it be a pronoun?
+      } else { // word does not have a gender hint: could it be a pronoun or be analyzed?
         let maybeGender = returnGenderIfPronoun(word);
+        if (maybeGender === null) { maybeGender = returnGenderByAnalysis(word); }
+
         if (maybeGender !== null) {
           assignColorForGender(words[i], maybeGender);
         }
@@ -98,6 +100,8 @@
           let sentenceWords = sentence.split(" ");
           for(let k = 0; k < sentenceWords.length; k += 1) {
               const genderWordResult = returnGenderIfPronoun(sentenceWords[k]);
+              if (genderWordResult === null) { genderWordResult = returnGenderByAnalysis(word); }
+
               if (genderWordResult !== null) {
                   sentenceColoredWords.push(colorSpanForGender(sentenceWords[k], genderWordResult));
               } else {
