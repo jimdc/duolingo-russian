@@ -10,11 +10,12 @@ const stripExports = (s) => s.replace(/^export\s+/gm, '');
 
 const gender = stripExports(read('src/ru-gender.js'));
 const colorize = stripExports(read('src/colorize.js'));
+const ui = stripExports(read('src/ui.js'));
 
 const header = `// ==UserScript==
 // @name         Duolingo Russian — gender colors
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.1.0
+// @version      0.1.1
 // @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter). Stress marks (ударение) coming next.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
@@ -41,26 +42,9 @@ const entry = `
     '#rg-legend .m { color: #1565c0; } #rg-legend .f { color: #c2185b; } #rg-legend .n { color: #2e7d32; }',
   ].join('\\n');
 
-  function inject(id, make) {
-    if (document.getElementById(id)) return;
-    const el = make();
-    el.id = id;
-    (document.head || document.documentElement).appendChild(el);
-  }
-  function injectStyle() {
-    inject('rg-style', () => { const s = document.createElement('style'); s.textContent = STYLE; return s; });
-  }
-  function injectLegend() {
-    inject('rg-legend', () => {
-      const d = document.createElement('div');
-      d.innerHTML = 'RU gender: <span class="m">masc</span> · <span class="f">fem</span> · <span class="n">neut</span>';
-      return d;
-    });
-  }
-
   function tick() {
-    injectStyle();
-    injectLegend();
+    ensureStyle(document, STYLE);
+    ensureLegend(document);
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
       const applied = colorizeChallenge(ch, { genderOf });
@@ -73,10 +57,10 @@ const entry = `
 })();
 `;
 
-const out = [header, '', gender, colorize, entry].join('\n');
+const out = [header, '', gender, colorize, ui, entry].join('\n');
 
 // Sanity: no ESM leftovers should reach the userscript.
-if (/^\s*(export|import)\s/m.test([gender, colorize].join('\n'))) {
+if (/^\s*(export|import)\s/m.test([gender, colorize, ui].join('\n'))) {
   throw new Error('build: leftover export/import in bundled modules');
 }
 

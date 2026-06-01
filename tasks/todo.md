@@ -25,7 +25,8 @@ Expansion of the old `gender-reveal` / `declension-highlighter` userscript for R
 - [x] **Userscript build** — `scripts/build-userscript.mjs` bundles src/ → `dist/duolingo-russian.user.js` (`npm run build`); valid JS, injects style + legend, polls challenges
 - [x] **Published** — repo renamed `declension-highlighter` → `jimdc/duolingo-russian`, pushed to master; userscript self-updates via `@updateURL`
   - Install: https://github.com/jimdc/duolingo-russian/raw/master/dist/duolingo-russian.user.js
-- [ ] **Verify live:** install from the GitHub URL, confirm gender colors on a real Russian lesson ← needs James
+- [x] **Verified live (2026-06-01):** masc/fem/neuter coloring confirmed on a real Russian lesson 🎉
+  - GOTCHA (now in README): Chrome needs `chrome://extensions` → Developer mode + Tampermonkey → Details → **Allow User Scripts**, or the script installs but never runs
   - On new releases: bump `@version` in `scripts/build-userscript.mjs`, `npm run build`, commit+push → Tampermonkey offers the update
 - [ ] EN→RU word-bank capture (Russian *tiles*) to extend coloring to tap tokens
 - [ ] (optional) emit an MV3 unpacked extension from the same core
