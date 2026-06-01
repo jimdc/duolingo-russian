@@ -1,3 +1,7 @@
 node_modules/
 *.log
 .DS_Store
+
+# Raw OpenRussian CSVs (8MB each) — source for scripts/build-lexicon.mjs.
+# The built lexicon (src/data/ru-gender-lexicon.json) IS committed and shipped.
+data/

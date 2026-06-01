@@ -1,16 +1,17 @@
 // ==UserScript==
 // @name         Duolingo Russian — gender colors
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.1.1
-// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter). Stress marks (ударение) coming next.
+// @version      0.2.0
+// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter), using an OpenRussian lexicon so declined forms work. Stress marks (ударение) coming next.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
 // @supportURL   https://github.com/jimdc/duolingo-russian/issues
 // @downloadURL  https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
 // @updateURL    https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
+// @resource     lexicon https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json
 // @match        https://*.duolingo.com/*
 // @run-at       document-idle
-// @grant        none
+// @grant        GM_getResourceText
 // ==/UserScript==
 
 // Russian grammatical gender from a surface word form.
@@ -90,6 +91,41 @@ function genderOf(raw) {
   if (last === 'ь') return 'Unknown';        // ambiguous and not in the lists
   if (CYRILLIC_CONSONANTS.has(last)) return 'Masculine';
 
+  return 'Unknown';
+}
+
+// Gender lookup backed by the OpenRussian-derived wordform lexicon.
+//
+// Replaces the nominative-only ending heuristic for live colouring: it knows
+// every declined form (сумку → f, красную → f) AND, by only containing nouns
+// and adjectives, it returns Unknown for verbs/particles/pronouns (дай, надо,
+// пожалуйста), so they're left uncoloured. Under-colour beats mis-colour.
+
+/** Build {m,f,n} Sets from the packed `{m,f,n: "form form ..."}` lexicon. */
+function makeLexicon(packed) {
+  const sets = { m: new Set(), f: new Set(), n: new Set() };
+  if (packed) {
+    for (const g of ['m', 'f', 'n']) {
+      const blob = packed[g];
+      if (!blob) continue;
+      for (const form of blob.split(' ')) if (form) sets[g].add(form);
+    }
+  }
+  return sets;
+}
+
+/**
+ * @param {string} word surface form (any case, with stress/punctuation)
+ * @param {{m:Set,f:Set,n:Set}|null} lex from makeLexicon()
+ * @returns {'Masculine'|'Feminine'|'Neuter'|'Unknown'}
+ */
+function lexiconGender(word, lex) {
+  if (!lex) return 'Unknown';
+  const w = normalize(word).replace(/ё/g, 'е'); // lexicon keys are built with ё→е
+  if (!w) return 'Unknown';
+  if (lex.f.has(w)) return 'Feminine';
+  if (lex.m.has(w)) return 'Masculine';
+  if (lex.n.has(w)) return 'Neuter';
   return 'Unknown';
 }
 
@@ -198,6 +234,22 @@ function ensureLegend(doc) {
 /* ---- browser entry (not part of the tested core) ---- */
 (function () {
   'use strict';
+  const LEX_URL = 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json';
+  let LEX = null;
+  const lookup = (w) => lexiconGender(w, LEX);
+
+  function loadLexicon() {
+    try {
+      if (typeof GM_getResourceText === 'function') {
+        const txt = GM_getResourceText('lexicon');
+        if (txt) { LEX = makeLexicon(JSON.parse(txt)); return; }
+      }
+    } catch (e) { console.warn('[duolingo-russian] resource load failed, will fetch', e); }
+    // Fallback (console-paste / no grant): raw GitHub sends CORS *, so a page fetch works.
+    fetch(LEX_URL).then((r) => r.json()).then((j) => { LEX = makeLexicon(j); })
+      .catch((e) => console.warn('[duolingo-russian] lexicon fetch failed', e));
+  }
+
   const STYLE = [
     '.rg-masc { color: #1565c0 !important; }',
     '.rg-fem  { color: #c2185b !important; }',
@@ -212,13 +264,15 @@ function ensureLegend(doc) {
   function tick() {
     ensureStyle(document, STYLE);
     ensureLegend(document);
+    if (!LEX) return; // hold off colouring until the lexicon is ready
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
-      const applied = colorizeChallenge(ch, { genderOf });
+      const applied = colorizeChallenge(ch, { genderOf: lookup });
       if (applied.length) ch.dataset.rgDone = '1';
     }
   }
 
+  loadLexicon();
   setInterval(tick, 400);
-  console.log('[duolingo-russian] gender colors active');
+  console.log('[duolingo-russian] active (lexicon-backed gender)');
 })();
