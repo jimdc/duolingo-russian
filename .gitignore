@@ -3,5 +3,5 @@ node_modules/
 .DS_Store
 
 # Raw OpenRussian CSVs (8MB each) — source for scripts/build-lexicon.mjs.
-# The built lexicon (src/data/ru-gender-lexicon.json) IS committed and shipped.
-data/
+# Anchored to repo root so it does NOT match src/data/ (the shipped lexicon).
+/data/
