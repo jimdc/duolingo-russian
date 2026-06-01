@@ -21,7 +21,7 @@ const isCharSpan = (el) =>
 
 const isWhitespace = (s) => /^\s*$/.test(s.textContent || '');
 
-const hasCyrillic = (s) => /[Ѐ-ӿ]/.test(s.textContent || '');
+export const hasCyrillic = (s) => /[Ѐ-ӿ]/.test(s.textContent || '');
 
 /** Split an ordered list of char spans into word-groups on whitespace spans. */
 function groupByWhitespace(spans) {
@@ -40,6 +40,29 @@ function groupByWhitespace(spans) {
 }
 
 /**
+ * The Russian prompt words in `root`, in reading order, as {word, spans}.
+ * Shared by gender-colouring and stress-marking so the parsing lives in one place.
+ * @param {Element|Document} root a challenge container
+ * @returns {{word: string, spans: Element[]}[]}
+ */
+export function wordGroups(root) {
+  if (!root?.querySelectorAll) return [];
+  const containers = new Set(
+    [...root.querySelectorAll('[data-test="hint-token"]')]
+      .map((t) => t.parentElement)
+      .filter(Boolean),
+  );
+  const groups = [];
+  for (const container of containers) {
+    const charSpans = [...container.children].filter(isCharSpan);
+    for (const spans of groupByWhitespace(charSpans)) {
+      groups.push({ word: spans.map((s) => s.textContent).join(''), spans });
+    }
+  }
+  return groups;
+}
+
+/**
  * Add gender classes to the Russian words in `root`.
  * @param {Element|Document} root a challenge container
  * @param {{genderOf: (w: string) => string}} opts
@@ -47,25 +70,15 @@ function groupByWhitespace(spans) {
  */
 export function colorizeChallenge(root, opts = {}) {
   const { genderOf } = opts;
-  if (!root?.querySelectorAll || typeof genderOf !== 'function') return [];
-
-  const containers = new Set(
-    [...root.querySelectorAll('[data-test="hint-token"]')]
-      .map((t) => t.parentElement)
-      .filter(Boolean),
-  );
+  if (typeof genderOf !== 'function') return [];
 
   const applied = [];
-  for (const container of containers) {
-    const charSpans = [...container.children].filter(isCharSpan);
-    for (const group of groupByWhitespace(charSpans)) {
-      const word = group.map((s) => s.textContent).join('');
-      const gender = genderOf(word);
-      const cls = GENDER_CLASS[gender];
-      if (!cls) continue; // Unknown / function word -> leave alone
-      for (const s of group) if (hasCyrillic(s)) s.classList.add(cls);
-      applied.push({ word, gender, cls });
-    }
+  for (const { word, spans } of wordGroups(root)) {
+    const gender = genderOf(word);
+    const cls = GENDER_CLASS[gender];
+    if (!cls) continue; // Unknown / function word -> leave alone
+    for (const s of spans) if (hasCyrillic(s)) s.classList.add(cls);
+    applied.push({ word, gender, cls });
   }
   return applied;
 }

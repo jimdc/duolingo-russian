@@ -31,16 +31,24 @@ Expansion of the old `gender-reveal` / `declension-highlighter` userscript for R
 - [ ] EN→RU word-bank capture (Russian *tiles*) to extend coloring to tap tokens
 - [ ] (optional) emit an MV3 unpacked extension from the same core
 
-## Phase 2 — Russian gender
-- [ ] Ending-based gender heuristic (-а/-я fem, -о/-е neut, consonant masc)
-- [ ] Exception list (папа/дядя masc, -мя neuters, soft-sign -ь ambiguity)
-- [ ] Color words by gender (existing blue/pink/green convention)
+## Phase 2 — Russian gender ✅ (v0.2.0, 2026-06-01)
+- [x] Ending heuristic shipped in v0.1 (`src/ru-gender.js`) — kept for `normalize()`, retired from live coloring
+- [x] **Lexicon-backed gender** (`src/lexicon.js` + `scripts/build-lexicon.mjs`) from OpenRussian — 243k wordforms incl. all declension cells; colors only dict-confirmed noun/adjective forms
+  - Fixes BOTH failure modes: declined forms now color (сумку, красную, чашку, синюю) AND non-nouns are skipped (Дай, мне, надо, помыть, пожалуйста)
+  - Shipped as a Tampermonkey `@resource` (cached once, offline after) — userscript stays ~11KB
+- [ ] Spot-check live across more lessons; note any miscolorings (OpenRussian CSV is slightly dirty)
+- [ ] Homograph genders (same form, two genders) are dropped as ambiguous — revisit if it under-colors common words
 
-## Phase 3 — Stress (ударение)  ← highest-value feature
-- [ ] Choose a stress data source (Wiktionary dump / OpenRussian) — log provenance
-- [ ] Bundle a lemma→stress lexicon; map inflected forms where feasible
-- [ ] Render accent overlay on the stressed vowel (о́, е́, …)
-- [ ] Handle multiple/ambiguous stress and stress that shifts with case
+## Phase 3 — Stress (ударение)  ← NEXT (data already in hand)
+- OpenRussian gives the stressed form per cell (`accented` col, apostrophe notation: `су'мку` = сУ́мку). Same pipeline as gender.
+- [ ] Extend `build-lexicon.mjs` to emit wordform → stress position (or accented form), reusing the case columns
+- [ ] Render accent overlay on the stressed vowel (о́, е́, …) on the prompt char-spans
+- [ ] Handle multiple/ambiguous stress (cells with comma alternatives) and stress that shifts with case
+
+## Phase 4 — Other features
+- [ ] Case / declension annotation (the original stated goal)
+- [ ] ё vs е disambiguation
+- [ ] Verb aspect pairs (perfective/imperfective)
 
 ## Phase 4 — Other features
 - [ ] Case / declension annotation (the original stated goal)

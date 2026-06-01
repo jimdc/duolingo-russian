@@ -1,14 +1,15 @@
 // ==UserScript==
-// @name         Duolingo Russian — gender colors
+// @name         Duolingo Russian — gender + stress
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.2.0
-// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter), using an OpenRussian lexicon so declined forms work. Stress marks (ударение) coming next.
+// @version      0.3.0
+// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter) and mark stress (ударение), from an OpenRussian lexicon so declined forms work.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
 // @supportURL   https://github.com/jimdc/duolingo-russian/issues
 // @downloadURL  https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
 // @updateURL    https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
 // @resource     lexicon https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json
+// @resource     stress https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json
 // @match        https://*.duolingo.com/*
 // @run-at       document-idle
 // @grant        GM_getResourceText
@@ -94,41 +95,6 @@ function genderOf(raw) {
   return 'Unknown';
 }
 
-// Gender lookup backed by the OpenRussian-derived wordform lexicon.
-//
-// Replaces the nominative-only ending heuristic for live colouring: it knows
-// every declined form (сумку → f, красную → f) AND, by only containing nouns
-// and adjectives, it returns Unknown for verbs/particles/pronouns (дай, надо,
-// пожалуйста), so they're left uncoloured. Under-colour beats mis-colour.
-
-/** Build {m,f,n} Sets from the packed `{m,f,n: "form form ..."}` lexicon. */
-function makeLexicon(packed) {
-  const sets = { m: new Set(), f: new Set(), n: new Set() };
-  if (packed) {
-    for (const g of ['m', 'f', 'n']) {
-      const blob = packed[g];
-      if (!blob) continue;
-      for (const form of blob.split(' ')) if (form) sets[g].add(form);
-    }
-  }
-  return sets;
-}
-
-/**
- * @param {string} word surface form (any case, with stress/punctuation)
- * @param {{m:Set,f:Set,n:Set}|null} lex from makeLexicon()
- * @returns {'Masculine'|'Feminine'|'Neuter'|'Unknown'}
- */
-function lexiconGender(word, lex) {
-  if (!lex) return 'Unknown';
-  const w = normalize(word).replace(/ё/g, 'е'); // lexicon keys are built with ё→е
-  if (!w) return 'Unknown';
-  if (lex.f.has(w)) return 'Feminine';
-  if (lex.m.has(w)) return 'Masculine';
-  if (lex.n.has(w)) return 'Neuter';
-  return 'Unknown';
-}
-
 // Paint the Russian prompt words in a Duolingo challenge by grammatical gender.
 //
 // The prompt is rendered as a flat run of single-character `span[aria-hidden]`
@@ -171,6 +137,29 @@ function groupByWhitespace(spans) {
 }
 
 /**
+ * The Russian prompt words in `root`, in reading order, as {word, spans}.
+ * Shared by gender-colouring and stress-marking so the parsing lives in one place.
+ * @param {Element|Document} root a challenge container
+ * @returns {{word: string, spans: Element[]}[]}
+ */
+function wordGroups(root) {
+  if (!root?.querySelectorAll) return [];
+  const containers = new Set(
+    [...root.querySelectorAll('[data-test="hint-token"]')]
+      .map((t) => t.parentElement)
+      .filter(Boolean),
+  );
+  const groups = [];
+  for (const container of containers) {
+    const charSpans = [...container.children].filter(isCharSpan);
+    for (const spans of groupByWhitespace(charSpans)) {
+      groups.push({ word: spans.map((s) => s.textContent).join(''), spans });
+    }
+  }
+  return groups;
+}
+
+/**
  * Add gender classes to the Russian words in `root`.
  * @param {Element|Document} root a challenge container
  * @param {{genderOf: (w: string) => string}} opts
@@ -178,27 +167,109 @@ function groupByWhitespace(spans) {
  */
 function colorizeChallenge(root, opts = {}) {
   const { genderOf } = opts;
-  if (!root?.querySelectorAll || typeof genderOf !== 'function') return [];
-
-  const containers = new Set(
-    [...root.querySelectorAll('[data-test="hint-token"]')]
-      .map((t) => t.parentElement)
-      .filter(Boolean),
-  );
+  if (typeof genderOf !== 'function') return [];
 
   const applied = [];
-  for (const container of containers) {
-    const charSpans = [...container.children].filter(isCharSpan);
-    for (const group of groupByWhitespace(charSpans)) {
-      const word = group.map((s) => s.textContent).join('');
-      const gender = genderOf(word);
-      const cls = GENDER_CLASS[gender];
-      if (!cls) continue; // Unknown / function word -> leave alone
-      for (const s of group) if (hasCyrillic(s)) s.classList.add(cls);
-      applied.push({ word, gender, cls });
-    }
+  for (const { word, spans } of wordGroups(root)) {
+    const gender = genderOf(word);
+    const cls = GENDER_CLASS[gender];
+    if (!cls) continue; // Unknown / function word -> leave alone
+    for (const s of spans) if (hasCyrillic(s)) s.classList.add(cls);
+    applied.push({ word, gender, cls });
   }
   return applied;
+}
+
+// Gender lookup backed by the OpenRussian-derived wordform lexicon.
+//
+// Replaces the nominative-only ending heuristic for live colouring: it knows
+// every declined form (сумку → f, красную → f) AND, by only containing nouns
+// and adjectives, it returns Unknown for verbs/particles/pronouns (дай, надо,
+// пожалуйста), so they're left uncoloured. Under-colour beats mis-colour.
+
+/** Build {m,f,n} Sets from the packed `{m,f,n: "form form ..."}` lexicon. */
+function makeLexicon(packed) {
+  const sets = { m: new Set(), f: new Set(), n: new Set() };
+  if (packed) {
+    for (const g of ['m', 'f', 'n']) {
+      const blob = packed[g];
+      if (!blob) continue;
+      for (const form of blob.split(' ')) if (form) sets[g].add(form);
+    }
+  }
+  return sets;
+}
+
+/**
+ * @param {string} word surface form (any case, with stress/punctuation)
+ * @param {{m:Set,f:Set,n:Set}|null} lex from makeLexicon()
+ * @returns {'Masculine'|'Feminine'|'Neuter'|'Unknown'}
+ */
+function lexiconGender(word, lex) {
+  if (!lex) return 'Unknown';
+  const w = normalize(word).replace(/ё/g, 'е'); // lexicon keys are built with ё→е
+  if (!w) return 'Unknown';
+  if (lex.f.has(w)) return 'Feminine';
+  if (lex.m.has(w)) return 'Masculine';
+  if (lex.n.has(w)) return 'Neuter';
+  return 'Unknown';
+}
+
+// Mark Russian stress (ударение) on the prompt words, using the OpenRussian-derived
+// wordform → stressed-letter-index lexicon. Applies to every part of speech, so
+// verbs/particles get accents even though they aren't gender-coloured.
+
+const COMBINING_ACUTE = '́';
+const VOWELS = /[аеёиоуыэюя]/i;
+
+/** Build a form → stressed-index Map from the packed `{ "<idx>": "form ..." }` lexicon. */
+function makeStress(packed) {
+  const map = new Map();
+  if (packed) {
+    for (const idx of Object.keys(packed)) {
+      const i = Number(idx);
+      for (const form of packed[idx].split(' ')) if (form) map.set(form, i);
+    }
+  }
+  return map;
+}
+
+/** @returns {number} index of the stressed letter, or -1 if unknown. */
+function stressIndexOf(word, map) {
+  if (!map) return -1;
+  const w = normalize(word).replace(/ё/g, 'е');
+  return map.has(w) ? map.get(w) : -1;
+}
+
+/** Append a combining acute to the idx-th Cyrillic letter among `spans`. */
+function applyStressToSpans(spans, idx) {
+  let letterPos = 0;
+  for (const s of spans) {
+    if (!hasCyrillic(s)) continue;
+    if (letterPos === idx) {
+      const t = s.textContent || '';
+      if (t.includes(COMBINING_ACUTE) || t.includes('ё') || t.includes('Ё')) return false; // already marked
+      if (!VOWELS.test(t)) return false; // safety: only accent a vowel
+      s.textContent = t + COMBINING_ACUTE;
+      return true;
+    }
+    letterPos++;
+  }
+  return false;
+}
+
+/**
+ * Add stress marks to every known word in `root`.
+ * @returns {{word: string, idx: number}[]} words actually marked
+ */
+function markStress(root, map) {
+  const marked = [];
+  for (const { word, spans } of wordGroups(root)) {
+    const idx = stressIndexOf(word, map);
+    if (idx < 0) continue;
+    if (applyStressToSpans(spans, idx)) marked.push({ word, idx });
+  }
+  return marked;
 }
 
 // Minimal DOM glue for the userscript: the gender stylesheet and the legend.
@@ -234,20 +305,20 @@ function ensureLegend(doc) {
 /* ---- browser entry (not part of the tested core) ---- */
 (function () {
   'use strict';
-  const LEX_URL = 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json';
-  let LEX = null;
+  const URLS = { lexicon: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json', stress: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json' };
+  let LEX = null, STRESS = null;
   const lookup = (w) => lexiconGender(w, LEX);
 
-  function loadLexicon() {
+  // Load a @resource (cached, offline) or, failing that, fetch raw GitHub (CORS *).
+  function loadResource(name, build, assign) {
     try {
       if (typeof GM_getResourceText === 'function') {
-        const txt = GM_getResourceText('lexicon');
-        if (txt) { LEX = makeLexicon(JSON.parse(txt)); return; }
+        const txt = GM_getResourceText(name);
+        if (txt) { assign(build(JSON.parse(txt))); return; }
       }
-    } catch (e) { console.warn('[duolingo-russian] resource load failed, will fetch', e); }
-    // Fallback (console-paste / no grant): raw GitHub sends CORS *, so a page fetch works.
-    fetch(LEX_URL).then((r) => r.json()).then((j) => { LEX = makeLexicon(j); })
-      .catch((e) => console.warn('[duolingo-russian] lexicon fetch failed', e));
+    } catch (e) { console.warn('[duolingo-russian] resource ' + name + ' failed, will fetch', e); }
+    fetch(URLS[name]).then((r) => r.json()).then((j) => assign(build(j)))
+      .catch((e) => console.warn('[duolingo-russian] fetch ' + name + ' failed', e));
   }
 
   const STYLE = [
@@ -264,15 +335,17 @@ function ensureLegend(doc) {
   function tick() {
     ensureStyle(document, STYLE);
     ensureLegend(document);
-    if (!LEX) return; // hold off colouring until the lexicon is ready
+    if (!LEX || !STRESS) return; // wait until both lexicons are ready
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
-      const applied = colorizeChallenge(ch, { genderOf: lookup });
-      if (applied.length) ch.dataset.rgDone = '1';
+      const colored = colorizeChallenge(ch, { genderOf: lookup });
+      const stressed = markStress(ch, STRESS);
+      if (colored.length || stressed.length) ch.dataset.rgDone = '1';
     }
   }
 
-  loadLexicon();
+  loadResource('lexicon', makeLexicon, (v) => { LEX = v; });
+  loadResource('stress', makeStress, (v) => { STRESS = v; });
   setInterval(tick, 400);
-  console.log('[duolingo-russian] active (lexicon-backed gender)');
+  console.log('[duolingo-russian] active (gender + stress)');
 })();

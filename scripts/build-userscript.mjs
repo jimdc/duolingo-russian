@@ -1,6 +1,6 @@
 // Bundle the packaging-agnostic src/ modules into a single installable userscript.
 // Single source of truth: src/*.js. We strip ESM import/export and append a browser
-// entry. The gender lexicon is NOT inlined — it ships as a Tampermonkey @resource
+// entry. The lexicons are NOT inlined — they ship as Tampermonkey @resource files
 // (downloaded + cached once at install), so the userscript itself stays tiny.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -10,26 +10,31 @@ const read = (p) => readFileSync(new URL(p, root), 'utf8');
 const stripModule = (s) =>
   s.replace(/^\s*import[^\n]*\n/gm, '').replace(/^export\s+/gm, '');
 
-// Order matters: normalize (ru-gender) before lexicon uses it.
+// Order matters: ru-gender (normalize) and colorize (wordGroups) before the
+// modules that use them (lexicon, stress).
 const gender = stripModule(read('src/ru-gender.js'));
-const lexicon = stripModule(read('src/lexicon.js'));
 const colorize = stripModule(read('src/colorize.js'));
+const lexicon = stripModule(read('src/lexicon.js'));
+const stress = stripModule(read('src/stress.js'));
 const ui = stripModule(read('src/ui.js'));
+const modules = [gender, colorize, lexicon, stress, ui];
 
-const LEX_URL =
-  'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json';
+const RAW = 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data';
+const LEX_URL = `${RAW}/ru-gender-lexicon.json`;
+const STRESS_URL = `${RAW}/ru-stress-lexicon.json`;
 
 const header = `// ==UserScript==
-// @name         Duolingo Russian — gender colors
+// @name         Duolingo Russian — gender + stress
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.2.0
-// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter), using an OpenRussian lexicon so declined forms work. Stress marks (ударение) coming next.
+// @version      0.3.0
+// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter) and mark stress (ударение), from an OpenRussian lexicon so declined forms work.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
 // @supportURL   https://github.com/jimdc/duolingo-russian/issues
 // @downloadURL  https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
 // @updateURL    https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
 // @resource     lexicon ${LEX_URL}
+// @resource     stress ${STRESS_URL}
 // @match        https://*.duolingo.com/*
 // @run-at       document-idle
 // @grant        GM_getResourceText
@@ -39,20 +44,20 @@ const entry = `
 /* ---- browser entry (not part of the tested core) ---- */
 (function () {
   'use strict';
-  const LEX_URL = '${LEX_URL}';
-  let LEX = null;
+  const URLS = { lexicon: '${LEX_URL}', stress: '${STRESS_URL}' };
+  let LEX = null, STRESS = null;
   const lookup = (w) => lexiconGender(w, LEX);
 
-  function loadLexicon() {
+  // Load a @resource (cached, offline) or, failing that, fetch raw GitHub (CORS *).
+  function loadResource(name, build, assign) {
     try {
       if (typeof GM_getResourceText === 'function') {
-        const txt = GM_getResourceText('lexicon');
-        if (txt) { LEX = makeLexicon(JSON.parse(txt)); return; }
+        const txt = GM_getResourceText(name);
+        if (txt) { assign(build(JSON.parse(txt))); return; }
       }
-    } catch (e) { console.warn('[duolingo-russian] resource load failed, will fetch', e); }
-    // Fallback (console-paste / no grant): raw GitHub sends CORS *, so a page fetch works.
-    fetch(LEX_URL).then((r) => r.json()).then((j) => { LEX = makeLexicon(j); })
-      .catch((e) => console.warn('[duolingo-russian] lexicon fetch failed', e));
+    } catch (e) { console.warn('[duolingo-russian] resource ' + name + ' failed, will fetch', e); }
+    fetch(URLS[name]).then((r) => r.json()).then((j) => assign(build(j)))
+      .catch((e) => console.warn('[duolingo-russian] fetch ' + name + ' failed', e));
   }
 
   const STYLE = [
@@ -69,24 +74,26 @@ const entry = `
   function tick() {
     ensureStyle(document, STYLE);
     ensureLegend(document);
-    if (!LEX) return; // hold off colouring until the lexicon is ready
+    if (!LEX || !STRESS) return; // wait until both lexicons are ready
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
-      const applied = colorizeChallenge(ch, { genderOf: lookup });
-      if (applied.length) ch.dataset.rgDone = '1';
+      const colored = colorizeChallenge(ch, { genderOf: lookup });
+      const stressed = markStress(ch, STRESS);
+      if (colored.length || stressed.length) ch.dataset.rgDone = '1';
     }
   }
 
-  loadLexicon();
+  loadResource('lexicon', makeLexicon, (v) => { LEX = v; });
+  loadResource('stress', makeStress, (v) => { STRESS = v; });
   setInterval(tick, 400);
-  console.log('[duolingo-russian] active (lexicon-backed gender)');
+  console.log('[duolingo-russian] active (gender + stress)');
 })();
 `;
 
-const out = [header, '', gender, lexicon, colorize, ui, entry].join('\n');
+const out = [header, '', ...modules, entry].join('\n');
 
 // Sanity: no ESM leftovers should reach the userscript.
-if (/^\s*(export|import)\s/m.test([gender, lexicon, colorize, ui].join('\n'))) {
+if (/^\s*(export|import)\s/m.test(modules.join('\n'))) {
   throw new Error('build: leftover export/import in bundled modules');
 }
 
