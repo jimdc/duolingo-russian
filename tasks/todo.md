@@ -23,7 +23,10 @@ Expansion of the old `gender-reveal` / `declension-highlighter` userscript for R
 - [x] `src/colorize.js` — group prompt char-spans into words, add gender class to Cyrillic letters (15/15 tests on both fixtures)
 - [x] **Prior-art check** — niche is UNFILLED; reuse OpenRussian (data) + duo-toolbox/solution-viewer (hooks ref). See CLAUDE.md "Prior art & reuse"
 - [x] **Userscript build** — `scripts/build-userscript.mjs` bundles src/ → `dist/duolingo-russian.user.js` (`npm run build`); valid JS, injects style + legend, polls challenges
-- [ ] **Verify live:** install `dist/*.user.js` in Tampermonkey/Violentmonkey, confirm gender colors on a real Russian lesson ← needs James
+- [x] **Published** — repo renamed `declension-highlighter` → `jimdc/duolingo-russian`, pushed to master; userscript self-updates via `@updateURL`
+  - Install: https://github.com/jimdc/duolingo-russian/raw/master/dist/duolingo-russian.user.js
+- [ ] **Verify live:** install from the GitHub URL, confirm gender colors on a real Russian lesson ← needs James
+  - On new releases: bump `@version` in `scripts/build-userscript.mjs`, `npm run build`, commit+push → Tampermonkey offers the update
 - [ ] EN→RU word-bank capture (Russian *tiles*) to extend coloring to tap tokens
 - [ ] (optional) emit an MV3 unpacked extension from the same core
 
