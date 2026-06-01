@@ -39,11 +39,17 @@ Expansion of the old `gender-reveal` / `declension-highlighter` userscript for R
 - [ ] Spot-check live across more lessons; note any miscolorings (OpenRussian CSV is slightly dirty)
 - [ ] Homograph genders (same form, two genders) are dropped as ambiguous — revisit if it under-colors common words
 
-## Phase 3 — Stress (ударение)  ← NEXT (data already in hand)
-- OpenRussian gives the stressed form per cell (`accented` col, apostrophe notation: `су'мку` = сУ́мку). Same pipeline as gender.
-- [ ] Extend `build-lexicon.mjs` to emit wordform → stress position (or accented form), reusing the case columns
-- [ ] Render accent overlay on the stressed vowel (о́, е́, …) on the prompt char-spans
-- [ ] Handle multiple/ambiguous stress (cells with comma alternatives) and stress that shifts with case
+## Phase 3 — Stress (ударение) ✅ (v0.3.0, 2026-06-01)
+- [x] `scripts/build-stress.mjs` — wordform → stressed-letter-index from ALL 4 OpenRussian CSVs (510k forms); skips monosyllables + conflicting homographs
+- [x] `src/stress.js` — `markStress` appends a combining acute to the right vowel's char-span (idempotent; skips ё/already-marked); covers verbs/particles too
+- [x] Shipped as a 2nd `@resource` (~10MB, cached); 26 tests
+- [ ] Verify live; watch for ambiguous-stress words left unmarked (intended) and any misplacements
+
+## Phase 4 — Other features
+- [ ] **Verb tense/aspect annotation** (user idea) — verbs.csv has aspect + past_*/presfut_*/imperative cols → map verb forms to past/present/future/imperative/infinitive. Needs a display channel distinct from gender color (decide: badge vs underline vs color).
+- [ ] Case / declension annotation (the original stated goal)
+- [ ] ё vs е disambiguation (restore ё) — partly enabled by the stress data
+- [ ] Color Russian word-bank tiles in EN→RU exercises
 
 ## Phase 4 — Other features
 - [ ] Case / declension annotation (the original stated goal)

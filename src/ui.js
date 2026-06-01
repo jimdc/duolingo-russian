@@ -21,8 +21,13 @@ export function ensureLegend(doc) {
   if (existing) return existing;
   const d = doc.createElement('div');
   d.id = LEGEND_ID;
-  d.innerHTML =
-    'RU gender: <span class="m">masc</span> · <span class="f">fem</span> · <span class="n">neut</span>';
   (doc.body || doc.documentElement).appendChild(d);
   return d;
+}
+
+/** Set the legend's HTML (mounting it first if needed); no-op if unchanged. */
+export function setLegend(doc, html) {
+  const el = ensureLegend(doc);
+  if (el.innerHTML !== html) el.innerHTML = html;
+  return el;
 }

@@ -1,18 +1,17 @@
 // ==UserScript==
-// @name         Duolingo Russian — gender + stress
+// @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.3.0
-// @description  Colour Russian words on Duolingo by grammatical gender (masc/fem/neuter) and mark stress (ударение), from an OpenRussian lexicon so declined forms work.
+// @version      0.4.0
+// @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, and mark stress (ударение). Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
 // @supportURL   https://github.com/jimdc/duolingo-russian/issues
 // @downloadURL  https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
 // @updateURL    https://raw.githubusercontent.com/jimdc/duolingo-russian/master/dist/duolingo-russian.user.js
-// @resource     lexicon https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json
-// @resource     stress https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json
 // @match        https://*.duolingo.com/*
 // @run-at       document-idle
-// @grant        GM_getResourceText
+// @grant        GM_xmlhttpRequest
+// @connect      raw.githubusercontent.com
 // ==/UserScript==
 
 // Russian grammatical gender from a surface word form.
@@ -272,6 +271,61 @@ function markStress(root, map) {
   return marked;
 }
 
+// Colour verbs by tense/mood, using the OpenRussian-derived verb-form lexicon.
+// Gender (nouns/adjectives) already owns text colour; verbs are a disjoint set,
+// so a word is either gender-coloured OR tense-coloured, never both. Gender wins
+// on the rare homograph (e.g. печь = oven/to-bake).
+
+const TENSE_CLASS = {
+  past: 'rg-past',
+  pres: 'rg-pres',
+  fut: 'rg-fut',
+  imp: 'rg-imp',
+  inf: 'rg-inf',
+};
+
+const GENDER_CLASSES = ['rg-masc', 'rg-fem', 'rg-neut'];
+
+/** Build a form → tense Map from the packed `{ "<tense>": "form ..." }` lexicon. */
+function makeVerbTense(packed) {
+  const map = new Map();
+  if (packed) {
+    for (const t of Object.keys(packed)) {
+      for (const f of packed[t].split(' ')) if (f) map.set(f, t);
+    }
+  }
+  return map;
+}
+
+/** @returns {'past'|'pres'|'fut'|'imp'|'inf'|null} */
+function verbTenseOf(word, map) {
+  if (!map) return null;
+  const w = normalize(word).replace(/ё/g, 'е');
+  return map.get(w) || null;
+}
+
+const isGendered = (spans) =>
+  spans.some((s) => s.classList && GENDER_CLASSES.some((c) => s.classList.contains(c)));
+
+/**
+ * Add a tense class to verb words in `root` that aren't already gender-coloured.
+ * @returns {{word: string, tense: string, cls: string}[]}
+ */
+function colorizeVerbs(root, opts = {}) {
+  const { tenseOf } = opts;
+  if (typeof tenseOf !== 'function') return [];
+  const applied = [];
+  for (const { word, spans } of wordGroups(root)) {
+    if (isGendered(spans)) continue; // gender takes precedence
+    const tense = tenseOf(word);
+    const cls = TENSE_CLASS[tense];
+    if (!cls) continue;
+    for (const s of spans) if (hasCyrillic(s)) s.classList.add(cls);
+    applied.push({ word, tense, cls });
+  }
+  return applied;
+}
+
 // Minimal DOM glue for the userscript: the gender stylesheet and the legend.
 // Lives here (not inline in the build script) so the mount targets are unit-testable.
 
@@ -295,57 +349,122 @@ function ensureLegend(doc) {
   if (existing) return existing;
   const d = doc.createElement('div');
   d.id = LEGEND_ID;
-  d.innerHTML =
-    'RU gender: <span class="m">masc</span> · <span class="f">fem</span> · <span class="n">neut</span>';
   (doc.body || doc.documentElement).appendChild(d);
   return d;
+}
+
+/** Set the legend's HTML (mounting it first if needed); no-op if unchanged. */
+function setLegend(doc, html) {
+  const el = ensureLegend(doc);
+  if (el.innerHTML !== html) el.innerHTML = html;
+  return el;
 }
 
 
 /* ---- browser entry (not part of the tested core) ---- */
 (function () {
   'use strict';
-  const URLS = { lexicon: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json', stress: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json' };
-  let LEX = null, STRESS = null;
-  const lookup = (w) => lexiconGender(w, LEX);
+  const VER = '0.4.0';
+  const SRC = { lexicon: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json', stress: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json', verb: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-verb-lexicon.json' };
+  const TOTAL = 18561490;
+  const state = { lexicon: null, stress: null, verb: null };
+  const loaded = {};
+  let failed = false;
+  const bytes = () => (loaded.lexicon || 0) + (loaded.stress || 0) + (loaded.verb || 0);
 
-  // Load a @resource (cached, offline) or, failing that, fetch raw GitHub (CORS *).
-  function loadResource(name, build, assign) {
-    try {
-      if (typeof GM_getResourceText === 'function') {
-        const txt = GM_getResourceText(name);
-        if (txt) { assign(build(JSON.parse(txt))); return; }
+  // ---- IndexedDB cache (best-effort: download once, ever) ----
+  const DBN = 'duo-russian', STORE = 'lex';
+  function openDB() {
+    return new Promise(function (resolve, reject) {
+      try {
+        const req = indexedDB.open(DBN, 1);
+        req.onupgradeneeded = function () {
+          if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      } catch (e) { reject(e); }
+    });
+  }
+  function idbGet(key) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve) {
+        const r = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
+        r.onsuccess = function () { resolve(r.result || null); };
+        r.onerror = function () { resolve(null); };
+      });
+    }).catch(function () { return null; });
+  }
+  function idbSet(key, val) {
+    openDB().then(function (db) {
+      db.transaction(STORE, 'readwrite').objectStore(STORE).put(val, key);
+    }).catch(function () {});
+  }
+
+  // CSP-safe cross-origin GET with progress; falls back to page fetch (console use).
+  function download(name) {
+    const url = SRC[name];
+    return new Promise(function (resolve, reject) {
+      if (typeof GM_xmlhttpRequest === 'function') {
+        GM_xmlhttpRequest({
+          method: 'GET', url: url,
+          onprogress: function (e) { loaded[name] = e.loaded || 0; },
+          onload: function (r) { loaded[name] = (r.responseText || '').length; resolve(r.responseText); },
+          onerror: function () { reject(new Error('xhr ' + name)); },
+        });
+      } else {
+        fetch(url).then(function (r) { return r.text(); }).then(resolve, reject);
       }
-    } catch (e) { console.warn('[duolingo-russian] resource ' + name + ' failed, will fetch', e); }
-    fetch(URLS[name]).then((r) => r.json()).then((j) => assign(build(j)))
-      .catch((e) => console.warn('[duolingo-russian] fetch ' + name + ' failed', e));
+    });
+  }
+  function loadOne(name, build) {
+    const key = name + '@' + VER;
+    return idbGet(key).then(function (cached) {
+      if (cached) return cached;
+      return download(name).then(function (txt) { const o = JSON.parse(txt); idbSet(key, o); return o; });
+    }).then(function (o) { return build(o); });
+  }
+  function loadAll() {
+    Promise.all([
+      loadOne('lexicon', makeLexicon).then(function (v) { state.lexicon = v; }),
+      loadOne('stress', makeStress).then(function (v) { state.stress = v; }),
+      loadOne('verb', makeVerbTense).then(function (v) { state.verb = v; }),
+    ]).catch(function (e) { failed = true; console.warn('[duolingo-russian] load failed', e); });
+  }
+  const ready = () => state.lexicon && state.stress && state.verb;
+
+  const KEY_HTML =
+    'gender <span class="m">m</span> <span class="f">f</span> <span class="n">n</span>' +
+    ' · tense <span class="pa">past</span> <span class="pr">pres</span> <span class="fu">fut</span> <span class="im">imp</span> <span class="in">inf</span>' +
+    ' · +stress';
+  function legendHtml() {
+    if (ready()) return KEY_HTML;
+    if (failed) return 'RU helper — download failed; reload to retry';
+    return 'RU helper — loading dictionaries ' + (bytes() / 1e6).toFixed(1) +
+      ' / ~' + (TOTAL / 1e6).toFixed(0) + ' MB (one-time, then cached)';
   }
 
   const STYLE = [
-    '.rg-masc { color: #1565c0 !important; }',
-    '.rg-fem  { color: #c2185b !important; }',
-    '.rg-neut { color: #2e7d32 !important; }',
-    '#rg-legend { position: fixed; left: 12px; bottom: 12px; z-index: 99999;',
-    '  font: 12px/1.4 system-ui, sans-serif; background: rgba(255,255,255,.95);',
-    '  color: #333; border: 1px solid #ddd; border-radius: 8px; padding: 5px 10px;',
-    '  box-shadow: 0 1px 4px rgba(0,0,0,.15); pointer-events: none; }',
-    '#rg-legend .m { color: #1565c0; } #rg-legend .f { color: #c2185b; } #rg-legend .n { color: #2e7d32; }',
+    '.rg-masc{color:#1565c0!important} .rg-fem{color:#c2185b!important} .rg-neut{color:#2e7d32!important}',
+    '.rg-past{color:#e65100!important} .rg-pres{color:#00838f!important} .rg-fut{color:#6a1b9a!important} .rg-imp{color:#5d4037!important} .rg-inf{color:#455a64!important}',
+    '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);pointer-events:none;max-width:70vw}',
+    '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
   ].join('\n');
 
   function tick() {
     ensureStyle(document, STYLE);
-    ensureLegend(document);
-    if (!LEX || !STRESS) return; // wait until both lexicons are ready
+    setLegend(document, legendHtml());
+    if (!ready()) return;
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
-      const colored = colorizeChallenge(ch, { genderOf: lookup });
-      const stressed = markStress(ch, STRESS);
-      if (colored.length || stressed.length) ch.dataset.rgDone = '1';
+      const g = colorizeChallenge(ch, { genderOf: function (w) { return lexiconGender(w, state.lexicon); } });
+      const v = colorizeVerbs(ch, { tenseOf: function (w) { return verbTenseOf(w, state.verb); } });
+      const s = markStress(ch, state.stress);
+      if (g.length || v.length || s.length) ch.dataset.rgDone = '1';
     }
   }
 
-  loadResource('lexicon', makeLexicon, (v) => { LEX = v; });
-  loadResource('stress', makeStress, (v) => { STRESS = v; });
+  loadAll();
   setInterval(tick, 400);
-  console.log('[duolingo-russian] active (gender + stress)');
+  console.log('[duolingo-russian] active (gender + stress + verb tense)');
 })();
