@@ -63,9 +63,25 @@ node scripts/build-verbs.mjs     # rebuild verb-tense data
 | `tests/fixtures/` | real Duolingo Russian challenge captures |
 | `scripts/build-*.mjs` | lexicon builders + userscript bundler |
 
+## Testing
+
+```sh
+npm test          # headless unit tests (node --test, 29)
+npm run visual    # render sample sentences in real Chrome → images/*.png (the README shots)
+```
+
+`npm run visual` drives your **system Chrome** (no browser download) via `playwright-core`, renders Duolingo-shaped prompt DOM through the real annotation modules, screenshots each to `images/`, and fails if nothing rendered.
+
+**Live spot-check on real lessons** (Tier 2) — quit Chrome, relaunch with remote debugging (keeps your login + Tampermonkey), open a lesson, then capture it:
+
+```sh
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+npm run visual:live   # connects over CDP → images/live-lesson.png
+```
+
 ## Roadmap
 
-- Visual/browser-driven testing before each release (render fixtures + script, screenshot, review)
+- Resolve homograph collisions (e.g. `мою` = "I wash" vs "my") — currently gender wins
 - Case / declension hints; ё vs е restoration
 - Colour Russian word-bank tiles in EN→RU exercises
 - Optional MV3 extension build

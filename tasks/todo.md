@@ -45,16 +45,25 @@ Expansion of the old `gender-reveal` / `declension-highlighter` userscript for R
 - [x] Shipped as a 2nd `@resource` (~10MB, cached); 26 tests
 - [ ] Verify live; watch for ambiguous-stress words left unmarked (intended) and any misplacements
 
-## Phase 4 — Other features
-- [ ] **Verb tense/aspect annotation** (user idea) — verbs.csv has aspect + past_*/presfut_*/imperative cols → map verb forms to past/present/future/imperative/infinitive. Needs a display channel distinct from gender color (decide: badge vs underline vs color).
+## Phase 4 — Verb tense ✅ (v0.4.0, 2026-06-01)
+- [x] `scripts/build-verbs.mjs` (160k forms) + `src/verbs.js` — colour verbs by tense/mood (past/pres/fut/imp/inf); aspect decides present vs future; gender wins on homographs
+- [x] Display: color by tense (orange/teal/purple/brown/slate) — user's pick
+
+## Download UX ✅ (v0.4.0)
+- [x] Fetch lexicons via `GM_xmlhttpRequest` (CSP-safe) with byte progress in the legend; cache in IndexedDB → download once ever, offline after. Dropped `@resource`.
+
+## Tooling — visual/browser testing ✅ (2026-06-01)
+- [x] **Tier 1** `npm run visual` (`scripts/visual/render.mjs`): renders sample sentences via real Chrome (`playwright-core` `channel:'chrome'`, no download), screenshots → `images/`, asserts annotations rendered. Generates the README shots.
+- [x] **Tier 2** `npm run visual:live` (`scripts/visual/live.mjs`): connects to logged-in Chrome over CDP (`--remote-debugging-port=9222`) → `images/live-lesson.png`.
+- [x] `images/gender-stress.png` + `images/verb-tense.png` generated + reviewed (look correct).
+- Found via Tier 1: `мою` homograph (verb vs possessive) colours as gender — known limitation (see lessons.md).
+- [ ] Later: drive Tier 2 to navigate into a lesson automatically (currently screenshots whatever tab is open).
+
+## Phase 5 — Later
 - [ ] Case / declension annotation (the original stated goal)
 - [ ] ё vs е disambiguation (restore ё) — partly enabled by the stress data
-- [ ] Color Russian word-bank tiles in EN→RU exercises
-
-## Phase 4 — Other features
-- [ ] Case / declension annotation (the original stated goal)
-- [ ] ё vs е disambiguation
-- [ ] Verb aspect pairs (perfective/imperfective)
+- [ ] Colour Russian word-bank tiles in EN→RU exercises
+- [ ] Optional MV3 extension build
 
 ## Phase 4 — Other features
 - [ ] Case / declension annotation (the original stated goal)

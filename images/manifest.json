@@ -1,0 +1,14 @@
+[
+  {
+    "name": "gender-stress",
+    "sentence": "Дай мне красную сумку, пожалуйста.",
+    "coloured": 15,
+    "stress": 3
+  },
+  {
+    "name": "verb-tense",
+    "sentence": "Я читаю книгу, помыл сумку и помою посуду.",
+    "coloured": 31,
+    "stress": 6
+  }
+]

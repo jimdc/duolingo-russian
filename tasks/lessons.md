@@ -12,3 +12,6 @@
 
 ## The real install blocker on Chrome is "Allow User Scripts" (2026-06-01)
 Chrome (2024+) silently won't run userscripts until `chrome://extensions` → Developer mode + the extension's **Allow User Scripts** toggle is on. `scriptRan: false` while the page DOM is correct = this, not a code bug. Documented in README.
+
+## Visual test caught a homograph on its first run (2026-06-01)
+The Tier-1 visual renderer (`scripts/visual/render.mjs`, real Chrome via `playwright-core` `channel:'chrome'`) immediately surfaced that **`мою`** rendered as feminine (red) not present-tense verb (teal): it's a homograph — "I wash" (мыть) vs "my" (мой, fem acc) — and gender lookup wins over verb-tense. Context-free lookup can't disambiguate; documented as a known limitation. **Rule:** a screenshot the model can actually read back is worth building — it finds rendering/semantic issues unit tests don't. `playwright-core` + `channel:'chrome'` avoids the ~120MB Chromium download.

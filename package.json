@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "build": "node scripts/build-userscript.mjs"
+    "build": "node scripts/build-userscript.mjs",
+    "visual": "node scripts/visual/render.mjs",
+    "visual:live": "node scripts/visual/live.mjs"
   },
   "license": "MIT",
   "devDependencies": {
-    "linkedom": "^0.18.0"
+    "linkedom": "^0.18.0",
+    "playwright-core": "^1.60.0"
   }
 }
