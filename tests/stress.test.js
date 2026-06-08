@@ -41,6 +41,20 @@ test('markStress appends a combining acute to the prompt words', () => {
   assert.ok(text.includes('ведро́') || text.includes('́'), 'expected a combining acute in the DOM');
 });
 
+test('word-bank tiles: stress is inserted inside the whole-word tile span', () => {
+  const { document } = loadChallenge('ru-wordbank-russian-tiles.json');
+  markStress(document, map);
+  const tileText = (w) =>
+    [...document.querySelectorAll('[data-test="challenge-tap-token-text"]')]
+      .map((s) => s.textContent)
+      .find((t) => t.replace(/[^Ѐ-ӿ]/g, '') === w);
+  assert.equal(tileText('ведро'), 'ведро́'); // end stress, mid-string insertion
+  assert.equal(tileText('красное'), 'кра́сное'); // stress on the 3rd letter
+  // idempotent on tiles too
+  markStress(document, map);
+  assert.equal(tileText('ведро'), 'ведро́');
+});
+
 test('idempotent — re-running does not double the accent', () => {
   const { document } = loadChallenge('ru-translate-wordbank.json');
   markStress(document, map);

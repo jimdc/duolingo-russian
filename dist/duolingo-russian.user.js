@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.4.0
-// @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, and mark stress (ударение). Data from OpenRussian, cached locally so it downloads once.
+// @version      0.6.0
+// @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, mark stress (ударение), and predict vowel reduction (akanye/ikanye) — on the prompt AND the word-bank tiles. Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
 // @supportURL   https://github.com/jimdc/duolingo-russian/issues
@@ -136,25 +136,44 @@ function groupByWhitespace(spans) {
 }
 
 /**
- * The Russian prompt words in `root`, in reading order, as {word, spans}.
+ * The Russian words in `root`, in reading order, as {word, spans}.
  * Shared by gender-colouring and stress-marking so the parsing lives in one place.
+ *
+ * Two DOM shapes are covered, both via stable `data-test` selectors:
+ *  - the prompt sentence — a flat run of per-character `span[aria-hidden]`
+ *    grouped by whitespace, under each `hint-token`'s parent (`spans` = letters);
+ *  - word-bank / match tiles — each tile's word is one text node in
+ *    `[data-test="challenge-tap-token-text"]` (`spans` = the single text span).
+ * Consumers don't care which: they add classes to every span and treat stress
+ * by Cyrillic-letter offset, so a 1-letter span and a whole-word span both work.
+ *
  * @param {Element|Document} root a challenge container
  * @returns {{word: string, spans: Element[]}[]}
  */
 function wordGroups(root) {
   if (!root?.querySelectorAll) return [];
+  const groups = [];
+
+  // Prompt sentence: per-character spans, grouped into words on whitespace.
   const containers = new Set(
     [...root.querySelectorAll('[data-test="hint-token"]')]
       .map((t) => t.parentElement)
       .filter(Boolean),
   );
-  const groups = [];
   for (const container of containers) {
     const charSpans = [...container.children].filter(isCharSpan);
     for (const spans of groupByWhitespace(charSpans)) {
       groups.push({ word: spans.map((s) => s.textContent).join(''), spans });
     }
   }
+
+  // Word-bank / match tiles: each tile holds its whole word in one text node.
+  // Only Russian tiles matter — non-Cyrillic tiles (e.g. English answers) are
+  // left out so the colour/stress passes never touch them.
+  for (const tile of root.querySelectorAll('[data-test="challenge-tap-token-text"]')) {
+    if (hasCyrillic(tile)) groups.push({ word: tile.textContent || '', spans: [tile] });
+  }
+
   return groups;
 }
 
@@ -220,6 +239,7 @@ function lexiconGender(word, lex) {
 
 const COMBINING_ACUTE = '́';
 const VOWELS = /[аеёиоуыэюя]/i;
+const CYRILLIC = /[Ѐ-ӿ]/;
 
 /** Build a form → stressed-index Map from the packed `{ "<idx>": "form ..." }` lexicon. */
 function makeStress(packed) {
@@ -240,19 +260,27 @@ function stressIndexOf(word, map) {
   return map.has(w) ? map.get(w) : -1;
 }
 
-/** Append a combining acute to the idx-th Cyrillic letter among `spans`. */
+/**
+ * Insert a combining acute after the idx-th Cyrillic letter among `spans`.
+ * Counts by Cyrillic letter, not by span, so it works whether each span holds a
+ * single letter (the prompt) or a whole word (a tile).
+ */
 function applyStressToSpans(spans, idx) {
   let letterPos = 0;
   for (const s of spans) {
-    if (!hasCyrillic(s)) continue;
-    if (letterPos === idx) {
-      const t = s.textContent || '';
-      if (t.includes(COMBINING_ACUTE) || t.includes('ё') || t.includes('Ё')) return false; // already marked
-      if (!VOWELS.test(t)) return false; // safety: only accent a vowel
-      s.textContent = t + COMBINING_ACUTE;
-      return true;
+    const t = s.textContent || '';
+    for (let i = 0; i < t.length; i++) {
+      if (!CYRILLIC.test(t[i])) continue; // count Cyrillic letters only
+      if (letterPos === idx) {
+        const ch = t[i];
+        if (t[i + 1] === COMBINING_ACUTE) return false; // already marked
+        if (ch === 'ё' || ch === 'Ё') return false; // ё is inherently stressed
+        if (!VOWELS.test(ch)) return false; // safety: only accent a vowel
+        s.textContent = t.slice(0, i + 1) + COMBINING_ACUTE + t.slice(i + 1);
+        return true;
+      }
+      letterPos++;
     }
-    letterPos++;
   }
   return false;
 }
@@ -322,6 +350,173 @@ function colorizeVerbs(root, opts = {}) {
     if (!cls) continue;
     for (const s of spans) if (hasCyrillic(s)) s.classList.add(cls);
     applied.push({ word, tense, cls });
+  }
+  return applied;
+}
+
+// Predict standard (Moscow-norm) unstressed vowel reduction — akanye + ikanye —
+// and surface it as a small IPA superscript on each reduced vowel. We already know
+// the stress (from the stress lexicon), which is the one fact reduction needs:
+//
+//   akanye  (hard о/а):  stressed → first-pretonic/word-initial [ɐ] → elsewhere [ə]
+//   ikanye  (soft е/я):  unstressed → [ɪ]   (and а after ч/щ → [ɪ])
+//   ж/ш/ц + е/и/я:       unstressed → [ɨ]   (always-hard sibilants)
+//   у/ю/ы/и:             left alone (negligible reduction / already that sound)
+//
+// Nothing is recoloured (gender/tense own colour) and no text is rewritten: the
+// IPA hint is a CSS ::after on a `.rg-rd` wrapper, shown only when reduction mode
+// is toggled on. So this layers cleanly over everything else.
+
+// Unique names: the userscript bundler flattens every src file into one scope,
+// so these must not collide with stress.js's CYRILLIC/VOWELS.
+const RD_CYR = /[Ѐ-ӿ]/;
+const RD_VOWELS = new Set('аеёиоуыэюя');
+const HARD_SIBILANTS = new Set('жшц'); // always hard
+const SOFT_CONSONANTS = new Set('чщй'); // always soft
+
+const AKANYE = (tier1) =>
+  tier1 ? { ipa: 'ɐ', cls: 'rg-rd-a' } : { ipa: 'ə', cls: 'rg-rd-schwa' };
+const IKANYE = { ipa: 'ɪ', cls: 'rg-rd-i' };
+const YERY = { ipa: 'ɨ', cls: 'rg-rd-y' };
+
+/**
+ * The reduced realisation of one unstressed vowel.
+ * @param {string} v      the (lowercased) vowel letter
+ * @param {string} prev   the (lowercased) preceding Cyrillic letter, '' if none
+ * @param {boolean} tier1 true if first-pretonic or word-initial (weaker reduction)
+ * @returns {{ipa: string, cls: string}|null} null = leave it unmarked
+ */
+function reduceVowel(v, prev, tier1) {
+  if (HARD_SIBILANTS.has(prev)) {
+    if (v === 'е' || v === 'и' || v === 'я') return YERY; // жена→[ɨ], цифра→[ɨ]
+    if (v === 'а' || v === 'о') return AKANYE(tier1); // жара→[ɐ]
+    return null;
+  }
+  if (SOFT_CONSONANTS.has(prev)) {
+    if (v === 'а' || v === 'е' || v === 'я') return IKANYE; // часы→[ɪ]
+    return null; // и already [ɪ]; у stays
+  }
+  if (v === 'я' || v === 'е') return IKANYE; // ikanye after a soft consonant
+  if (v === 'а' || v === 'о') return AKANYE(tier1); // akanye
+  if (v === 'э') return YERY; // rare; этаж→[ɨ]
+  return null; // и, у, ю, ы, ё — left alone
+}
+
+/**
+ * Map each reduced vowel of `word` to its IPA hint, keyed by Cyrillic-letter index
+ * (the same index space as the stress lexicon and applyStressToSpans).
+ * @param {string} word
+ * @param {number} stressIdx index of the stressed Cyrillic letter, or -1
+ * @returns {Map<number, {ipa: string, cls: string}>}
+ */
+function reduceWord(word, stressIdx) {
+  const out = new Map();
+  if (stressIdx == null || stressIdx < 0) return out; // unknown stress / monosyllable
+
+  const letters = [];
+  for (const ch of String(word)) if (RD_CYR.test(ch)) letters.push(ch.toLowerCase());
+
+  const vowelAt = []; // Cyrillic-letter indices that are vowels, in order
+  for (let i = 0; i < letters.length; i++) if (RD_VOWELS.has(letters[i])) vowelAt.push(i);
+  if (vowelAt.length <= 1) return out; // monosyllable: the one vowel is the stress
+
+  const stressedPos = vowelAt.indexOf(stressIdx);
+  if (stressedPos < 0) return out; // stress mark not on a vowel — bail rather than guess
+  const firstPretonic = stressedPos > 0 ? vowelAt[stressedPos - 1] : -1;
+
+  for (const li of vowelAt) {
+    if (li === stressIdx) continue; // stressed vowel keeps full quality
+    const r = reduceVowel(letters[li], li > 0 ? letters[li - 1] : '', li === firstPretonic || li === 0);
+    if (r) out.set(li, r);
+  }
+  return out;
+}
+
+/** Wrap (or tag) the reduced vowels among `spans` with `.rg-rd` + data-ipa. */
+function applyReductionToSpans(spans, byIndex) {
+  let pos = 0;
+  let any = false;
+  for (const s of spans) {
+    const t = s.textContent || '';
+    let cyr = 0;
+    for (const ch of t) if (RD_CYR.test(ch)) cyr++;
+    if (cyr === 0) continue;
+    if (cyr === 1) {
+      // One Cyrillic letter in this span (prompt char-span, or a 1-letter tile):
+      // tag the span itself so CSS can render the superscript.
+      const r = byIndex.get(pos);
+      if (r) {
+        if (!s.classList || !s.classList.contains('rg-rd')) {
+          s.classList.add('rg-rd', r.cls);
+          s.setAttribute('data-ipa', r.ipa);
+        }
+        any = true;
+      }
+      pos += 1;
+    } else {
+      // Whole-word span (tile): split the text so each reduced vowel gets a wrapper.
+      if (rebuildSpan(s, t, pos, byIndex)) any = true;
+      pos += cyr;
+    }
+  }
+  return any;
+}
+
+/** Rebuild a multi-letter span, wrapping its reduced vowels; textContent is preserved. */
+function rebuildSpan(s, t, startPos, byIndex) {
+  if (s.querySelector && s.querySelector('.rg-rd')) return true; // already done
+  const doc = s.ownerDocument;
+  if (!doc) return false;
+
+  let pos = startPos;
+  let hasAny = false;
+  for (const ch of t) {
+    if (RD_CYR.test(ch)) {
+      if (byIndex.has(pos)) { hasAny = true; break; }
+      pos++;
+    }
+  }
+  if (!hasAny) return false;
+
+  const frag = doc.createDocumentFragment();
+  let buf = '';
+  const flush = () => { if (buf) { frag.appendChild(doc.createTextNode(buf)); buf = ''; } };
+  pos = startPos;
+  for (const ch of t) {
+    if (RD_CYR.test(ch)) {
+      const r = byIndex.get(pos);
+      if (r) {
+        flush();
+        const w = doc.createElement('span');
+        w.className = 'rg-rd ' + r.cls;
+        w.setAttribute('data-ipa', r.ipa);
+        w.textContent = ch;
+        frag.appendChild(w);
+      } else {
+        buf += ch;
+      }
+      pos++;
+    } else {
+      buf += ch; // punctuation, spaces, and the combining acute on the stressed vowel
+    }
+  }
+  flush();
+  s.textContent = '';
+  s.appendChild(frag);
+  return true;
+}
+
+/**
+ * Annotate every known word in `root` with its predicted vowel reduction.
+ * @returns {{word: string, count: number}[]} words actually annotated
+ */
+function colorizeReductions(root, stressMap) {
+  const applied = [];
+  for (const { word, spans } of wordGroups(root)) {
+    const byIndex = reduceWord(word, stressIndexOf(word, stressMap));
+    if (byIndex.size && applyReductionToSpans(spans, byIndex)) {
+      applied.push({ word, count: byIndex.size });
+    }
   }
   return applied;
 }
@@ -433,12 +628,16 @@ function setLegend(doc, html) {
   }
   const ready = () => state.lexicon && state.stress && state.verb;
 
+  const reduceOn = () => !!(document.body && document.body.classList.contains('rg-reduce'));
   const KEY_HTML =
     'gender <span class="m">m</span> <span class="f">f</span> <span class="n">n</span>' +
     ' · tense <span class="pa">past</span> <span class="pr">pres</span> <span class="fu">fut</span> <span class="im">imp</span> <span class="in">inf</span>' +
     ' · +stress';
+  const RED_ON =
+    ' · reduce <span class="rda">ɐ</span><span class="rds">ə</span><span class="rdi">ɪ</span><span class="rdy">ɨ</span> <b>R</b>';
+  const RED_OFF = ' · <span style="opacity:.65">vowel reduction off — <b>R</b></span>';
   function legendHtml() {
-    if (ready()) return KEY_HTML;
+    if (ready()) return KEY_HTML + (reduceOn() ? RED_ON : RED_OFF);
     if (failed) return 'RU helper — download failed; reload to retry';
     return 'RU helper — loading dictionaries ' + (bytes() / 1e6).toFixed(1) +
       ' / ~' + (TOTAL / 1e6).toFixed(0) + ' MB (one-time, then cached)';
@@ -447,24 +646,51 @@ function setLegend(doc, html) {
   const STYLE = [
     '.rg-masc{color:#1565c0!important} .rg-fem{color:#c2185b!important} .rg-neut{color:#2e7d32!important}',
     '.rg-past{color:#e65100!important} .rg-pres{color:#00838f!important} .rg-fut{color:#6a1b9a!important} .rg-imp{color:#5d4037!important} .rg-inf{color:#455a64!important}',
-    '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);pointer-events:none;max-width:70vw}',
+    // Vowel-reduction hints: a small IPA superscript via ::after, shown only when on.
+    'body.rg-reduce .rg-rd{border-bottom:1px dotted rgba(0,0,0,.3)}',
+    'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.8;font-weight:700}',
+    'body.rg-reduce .rg-rd-a::after{color:#b26a00} body.rg-reduce .rg-rd-schwa::after{color:#757575} body.rg-reduce .rg-rd-i::after{color:#00838f} body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+    '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:70vw;cursor:pointer;user-select:none}',
     '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
+    '#rg-legend .rda{color:#b26a00}#rg-legend .rds{color:#757575}#rg-legend .rdi{color:#00838f}#rg-legend .rdy{color:#6a1b9a}',
   ].join('\n');
+
+  function toggleReduce() {
+    if (!document.body) return;
+    document.body.classList.toggle('rg-reduce');
+    setLegend(document, legendHtml());
+  }
+  // Toggle with the R key (Latin R or Cyrillic К on the same physical key)…
+  document.addEventListener('keydown', function (e) {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!/^[rRкК]$/.test(e.key)) return;
+    const el = e.target, tag = (el && el.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+    toggleReduce();
+  });
 
   function tick() {
     ensureStyle(document, STYLE);
+    if (document.body && !document.body.dataset.rgReduceInit) {
+      document.body.dataset.rgReduceInit = '1'; // default ON, once (user toggle then sticks)
+      document.body.classList.add('rg-reduce');
+    }
     setLegend(document, legendHtml());
+    // …or by clicking the legend (wired once).
+    const lg = document.getElementById('rg-legend');
+    if (lg && !lg.dataset.rgClick) { lg.dataset.rgClick = '1'; lg.addEventListener('click', toggleReduce); }
     if (!ready()) return;
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
       const g = colorizeChallenge(ch, { genderOf: function (w) { return lexiconGender(w, state.lexicon); } });
       const v = colorizeVerbs(ch, { tenseOf: function (w) { return verbTenseOf(w, state.verb); } });
       const s = markStress(ch, state.stress);
-      if (g.length || v.length || s.length) ch.dataset.rgDone = '1';
+      const r = colorizeReductions(ch, state.stress); // stress must run first (it mutates tile text)
+      if (g.length || v.length || s.length || r.length) ch.dataset.rgDone = '1';
     }
   }
 
   loadAll();
   setInterval(tick, 400);
-  console.log('[duolingo-russian] active (gender + stress + verb tense)');
+  console.log('[duolingo-russian] active (gender + stress + verb tense + vowel reduction)');
 })();

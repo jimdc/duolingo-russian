@@ -36,6 +36,23 @@ test('punctuation is not colored, only Cyrillic letters', () => {
   assert.ok(!colored.includes(' '));
 });
 
+test('word-bank tiles: Russian tiles get gender classes (English tile left alone)', () => {
+  const { document } = loadChallenge('ru-wordbank-russian-tiles.json');
+  const applied = colorizeChallenge(document, { genderOf });
+  // красное/ведро neuter, большой masc, книга fem; читаю isn't a noun → skipped.
+  assert.deepEqual(applied.map((a) => a.word).sort(), [
+    'большой', 'ведро', 'книга', 'красное',
+  ]);
+  // Each tile word is ONE span (whole word), unlike the per-letter prompt.
+  assert.equal(document.querySelectorAll('.rg-neut').length, 2);
+  assert.equal(document.querySelectorAll('.rg-masc').length, 1);
+  assert.equal(document.querySelectorAll('.rg-fem').length, 1);
+  // The English distractor tile ("the") is never coloured.
+  const en = [...document.querySelectorAll('[data-test="challenge-tap-token-text"]')]
+    .find((s) => s.textContent === 'the');
+  assert.equal(en.className, '');
+});
+
 test('no-op safety on bad input', () => {
   assert.deepEqual(colorizeChallenge(null, { genderOf }), []);
   const { document } = loadChallenge('ru-translate-wordbank.json');

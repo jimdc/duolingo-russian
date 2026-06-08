@@ -40,25 +40,44 @@ function groupByWhitespace(spans) {
 }
 
 /**
- * The Russian prompt words in `root`, in reading order, as {word, spans}.
+ * The Russian words in `root`, in reading order, as {word, spans}.
  * Shared by gender-colouring and stress-marking so the parsing lives in one place.
+ *
+ * Two DOM shapes are covered, both via stable `data-test` selectors:
+ *  - the prompt sentence — a flat run of per-character `span[aria-hidden]`
+ *    grouped by whitespace, under each `hint-token`'s parent (`spans` = letters);
+ *  - word-bank / match tiles — each tile's word is one text node in
+ *    `[data-test="challenge-tap-token-text"]` (`spans` = the single text span).
+ * Consumers don't care which: they add classes to every span and treat stress
+ * by Cyrillic-letter offset, so a 1-letter span and a whole-word span both work.
+ *
  * @param {Element|Document} root a challenge container
  * @returns {{word: string, spans: Element[]}[]}
  */
 export function wordGroups(root) {
   if (!root?.querySelectorAll) return [];
+  const groups = [];
+
+  // Prompt sentence: per-character spans, grouped into words on whitespace.
   const containers = new Set(
     [...root.querySelectorAll('[data-test="hint-token"]')]
       .map((t) => t.parentElement)
       .filter(Boolean),
   );
-  const groups = [];
   for (const container of containers) {
     const charSpans = [...container.children].filter(isCharSpan);
     for (const spans of groupByWhitespace(charSpans)) {
       groups.push({ word: spans.map((s) => s.textContent).join(''), spans });
     }
   }
+
+  // Word-bank / match tiles: each tile holds its whole word in one text node.
+  // Only Russian tiles matter — non-Cyrillic tiles (e.g. English answers) are
+  // left out so the colour/stress passes never touch them.
+  for (const tile of root.querySelectorAll('[data-test="challenge-tap-token-text"]')) {
+    if (hasCyrillic(tile)) groups.push({ word: tile.textContent || '', spans: [tile] });
+  }
+
   return groups;
 }
 

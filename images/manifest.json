@@ -10,5 +10,17 @@
     "sentence": "Я читаю книгу, помыл сумку и помою посуду.",
     "coloured": 31,
     "stress": 6
+  },
+  {
+    "name": "word-bank",
+    "sentence": "красное ведро мальчик книга читаю the",
+    "coloured": 5,
+    "stress": 5
+  },
+  {
+    "name": "reduction",
+    "sentence": "Хорошее молоко.",
+    "coloured": 13,
+    "stress": 2
   }
 ]

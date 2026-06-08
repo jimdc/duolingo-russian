@@ -35,6 +35,17 @@ test('colorizeVerbs adds the tense class to the verb letters', () => {
   assert.equal(doc.querySelectorAll('.rg-past').length, 5); // помыл
 });
 
+test('word-bank tiles: a verb tile gets its tense class', () => {
+  const json = JSON.parse(
+    readFileSync(new URL('./fixtures/ru-wordbank-russian-tiles.json', import.meta.url), 'utf8'),
+  );
+  const { document } = parseHTML('<!doctype html><body>' + json.challengeHTML + '</body>');
+  const applied = colorizeVerbs(document, { tenseOf: t });
+  // читаю → present; the noun/adjective tiles aren't verbs.
+  assert.deepEqual(applied.map((a) => `${a.word}:${a.tense}`), ['читаю:pres']);
+  assert.equal(document.querySelectorAll('.rg-pres').length, 1);
+});
+
 test('gender-coloured words are skipped (gender wins on homographs)', () => {
   const doc = challengeWith('мыл');
   for (const s of doc.querySelectorAll('span[aria-hidden]')) s.classList.add('rg-masc');

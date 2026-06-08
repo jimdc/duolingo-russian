@@ -14,7 +14,7 @@ const stripModule = (s) =>
 // Order: ru-gender (normalize) + colorize (wordGroups) before modules that use them.
 const modules = [
   'src/ru-gender.js', 'src/colorize.js', 'src/lexicon.js',
-  'src/stress.js', 'src/verbs.js', 'src/ui.js',
+  'src/stress.js', 'src/verbs.js', 'src/reduce.js', 'src/ui.js',
 ].map((p) => stripModule(read(p)));
 
 const RAW = 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data';
@@ -29,8 +29,8 @@ const TOTAL =
 const header = `// ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.4.0
-// @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, and mark stress (ударение). Data from OpenRussian, cached locally so it downloads once.
+// @version      0.6.0
+// @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, mark stress (ударение), and predict vowel reduction (akanye/ikanye) — on the prompt AND the word-bank tiles. Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
 // @supportURL   https://github.com/jimdc/duolingo-russian/issues
@@ -115,12 +115,16 @@ const entry = `
   }
   const ready = () => state.lexicon && state.stress && state.verb;
 
+  const reduceOn = () => !!(document.body && document.body.classList.contains('rg-reduce'));
   const KEY_HTML =
     'gender <span class="m">m</span> <span class="f">f</span> <span class="n">n</span>' +
     ' · tense <span class="pa">past</span> <span class="pr">pres</span> <span class="fu">fut</span> <span class="im">imp</span> <span class="in">inf</span>' +
     ' · +stress';
+  const RED_ON =
+    ' · reduce <span class="rda">ɐ</span><span class="rds">ə</span><span class="rdi">ɪ</span><span class="rdy">ɨ</span> <b>R</b>';
+  const RED_OFF = ' · <span style="opacity:.65">vowel reduction off — <b>R</b></span>';
   function legendHtml() {
-    if (ready()) return KEY_HTML;
+    if (ready()) return KEY_HTML + (reduceOn() ? RED_ON : RED_OFF);
     if (failed) return 'RU helper — download failed; reload to retry';
     return 'RU helper — loading dictionaries ' + (bytes() / 1e6).toFixed(1) +
       ' / ~' + (TOTAL / 1e6).toFixed(0) + ' MB (one-time, then cached)';
@@ -129,26 +133,53 @@ const entry = `
   const STYLE = [
     '.rg-masc{color:#1565c0!important} .rg-fem{color:#c2185b!important} .rg-neut{color:#2e7d32!important}',
     '.rg-past{color:#e65100!important} .rg-pres{color:#00838f!important} .rg-fut{color:#6a1b9a!important} .rg-imp{color:#5d4037!important} .rg-inf{color:#455a64!important}',
-    '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);pointer-events:none;max-width:70vw}',
+    // Vowel-reduction hints: a small IPA superscript via ::after, shown only when on.
+    'body.rg-reduce .rg-rd{border-bottom:1px dotted rgba(0,0,0,.3)}',
+    'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.8;font-weight:700}',
+    'body.rg-reduce .rg-rd-a::after{color:#b26a00} body.rg-reduce .rg-rd-schwa::after{color:#757575} body.rg-reduce .rg-rd-i::after{color:#00838f} body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+    '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:70vw;cursor:pointer;user-select:none}',
     '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
+    '#rg-legend .rda{color:#b26a00}#rg-legend .rds{color:#757575}#rg-legend .rdi{color:#00838f}#rg-legend .rdy{color:#6a1b9a}',
   ].join('\\n');
+
+  function toggleReduce() {
+    if (!document.body) return;
+    document.body.classList.toggle('rg-reduce');
+    setLegend(document, legendHtml());
+  }
+  // Toggle with the R key (Latin R or Cyrillic К on the same physical key)…
+  document.addEventListener('keydown', function (e) {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!/^[rRкК]$/.test(e.key)) return;
+    const el = e.target, tag = (el && el.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+    toggleReduce();
+  });
 
   function tick() {
     ensureStyle(document, STYLE);
+    if (document.body && !document.body.dataset.rgReduceInit) {
+      document.body.dataset.rgReduceInit = '1'; // default ON, once (user toggle then sticks)
+      document.body.classList.add('rg-reduce');
+    }
     setLegend(document, legendHtml());
+    // …or by clicking the legend (wired once).
+    const lg = document.getElementById('rg-legend');
+    if (lg && !lg.dataset.rgClick) { lg.dataset.rgClick = '1'; lg.addEventListener('click', toggleReduce); }
     if (!ready()) return;
     for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
       if (ch.dataset.rgDone) continue;
       const g = colorizeChallenge(ch, { genderOf: function (w) { return lexiconGender(w, state.lexicon); } });
       const v = colorizeVerbs(ch, { tenseOf: function (w) { return verbTenseOf(w, state.verb); } });
       const s = markStress(ch, state.stress);
-      if (g.length || v.length || s.length) ch.dataset.rgDone = '1';
+      const r = colorizeReductions(ch, state.stress); // stress must run first (it mutates tile text)
+      if (g.length || v.length || s.length || r.length) ch.dataset.rgDone = '1';
     }
   }
 
   loadAll();
   setInterval(tick, 400);
-  console.log('[duolingo-russian] active (gender + stress + verb tense)');
+  console.log('[duolingo-russian] active (gender + stress + verb tense + vowel reduction)');
 })();
 `;
 
