@@ -8,6 +8,10 @@ import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 const root = new URL('..', import.meta.url);
 const read = (p) => readFileSync(new URL(p, root), 'utf8');
 const size = (p) => statSync(new URL(p, root)).size;
+
+// Single source of truth for the userscript @version: package.json. Bump it with
+// `npm run release` (scripts/release.mjs), never by hand-editing the header below.
+const VERSION = JSON.parse(read('package.json')).version;
 const stripModule = (s) =>
   s.replace(/^\s*import[^\n]*\n/gm, '').replace(/^export\s+/gm, '');
 
@@ -29,7 +33,7 @@ const TOTAL =
 const header = `// ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.6.0
+// @version      ${VERSION}
 // @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, mark stress (ударение), and predict vowel reduction (akanye/ikanye) — on the prompt AND the word-bank tiles. Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian

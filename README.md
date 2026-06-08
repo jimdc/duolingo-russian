@@ -59,10 +59,13 @@ The core in `src/` is dependency-free and packaging-agnostic; `scripts/build-use
 npm install
 npm test            # node --test — 39 tests, incl. real captured-DOM fixtures
 npm run build       # bundle src/ → dist/duolingo-russian.user.js
+npm run release     # bump version, test, rebuild, commit (then: git push). -- minor / -- 1.2.3 / -- --dry
 node scripts/build-lexicon.mjs   # rebuild gender data from data/*.csv (gitignored)
 node scripts/build-stress.mjs    # rebuild stress data
 node scripts/build-verbs.mjs     # rebuild verb-tense data
 ```
+
+The userscript `@version` comes from `package.json` (the build injects it), so `npm run release` keeps the installed-copy auto-update in sync. Installed copies auto-update because the script's `@updateURL`/`@downloadURL` point at the raw `dist/` on `master` — Tampermonkey periodically refetches and upgrades when `@version` is higher.
 
 | Path | What |
 |---|---|
