@@ -1,6 +1,6 @@
 {
   "name": "duolingo-russian",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Duolingo web helper for Russian: color words by grammatical gender, mark stress (ударение), and more.",
   "type": "module",
   "scripts": {
@@ -10,6 +10,8 @@
     "visual:live": "node scripts/visual/live.mjs",
     "chrome:debug": "bash scripts/visual/chrome-debug.sh",
     "capture": "node scripts/visual/capture.mjs",
+    "dev:inject": "node scripts/visual/inject.mjs",
+    "dev:watch": "node scripts/visual/dev.mjs",
     "release": "node scripts/release.mjs"
   },
   "license": "MIT",

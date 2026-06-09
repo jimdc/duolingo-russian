@@ -9,6 +9,8 @@ A userscript that annotates the **Russian** course on Duolingo's web app:
 
 Function words (particles, pronouns) are left alone. Gender, tense, and stress all work on **inflected** forms (e.g. `су́мку`, `кра́сную`) because the data is a full wordform dictionary, not an ending guess; reduction is then derived from the stress. The annotations apply both to the **prompt sentence** and to the **word-bank / matching tiles** you tap (EN→RU exercises), so the Russian words you choose from are annotated too.
 
+> **A reduction mark can appear on an *uncoloured* word — that's expected.** Colour means "this word has a grammatical gender or verb tense"; the IPA superscript means "here's how this unstressed vowel sounds". They're independent layers: reduction only needs the stress position, so it shows on *every* word we know the stress of — including ones with nothing to colour, like indeclinable comparatives (`бо́льше` → `бо́льшеɨ`) and other function words. So `бо́льше` carrying a purple `ɨ` hint while staying uncoloured is correct, not a glitch.
+
 > Formerly **gender-reveal** → **declension-highlighter**. Rewritten in 2026 for Russian — the original scraped Duolingo's old hover-hints, which no longer carry this info.
 
 ## Screenshots
@@ -77,7 +79,7 @@ The userscript `@version` comes from `package.json` (the build injects it), so `
 | `src/data/*.json` | the shipped lexicons (built from OpenRussian) |
 | `tests/fixtures/` | real Duolingo Russian challenge captures |
 | `scripts/build-*.mjs` | lexicon builders + userscript bundler |
-| `scripts/visual/*` | render (Tier-1), live screenshot + capture (Tier-2), `chrome:debug` launcher |
+| `scripts/visual/*` | render (Tier-1), live screenshot + capture (Tier-2), `chrome:debug` launcher, `inject`/`dev` hot-reload |
 
 ## Testing
 
@@ -97,6 +99,15 @@ npm run capture        # records each challenge's real DOM + masking styles → 
 ```
 
 > First run on the dev profile: install Tampermonkey + the script there, then enable **Developer mode → Tampermonkey → Allow User Scripts** in `chrome://extensions` (same Chrome gotcha as [Install](#install)) — otherwise the script never runs and `visual:live` screenshots a bare lesson. (`npm run capture` reads Duolingo's raw DOM, so it works regardless.)
+
+**Fast iteration — inject the build instead of re-importing into Tampermonkey:**
+
+```sh
+npm run dev:inject     # evaluate the freshly-built dist/ in the open Duolingo tab over CDP
+npm run dev:watch      # rebuild + re-inject on every src/ change (the tightest loop)
+```
+
+This avoids the stale-copy trap (Tampermonkey only auto-updates ~daily, so it's easy to debug a bug that's already fixed). **Disable the Tampermonkey copy** in the dev profile while injecting, so only the build under test runs — otherwise the two copies collide. The running version is stamped onto the page, so you can always check what's live: `document.documentElement.dataset.rgVer` (also logged to the console at startup). Re-enable the Tampermonkey copy for a final smoke test of the real `GM_xmlhttpRequest` path before releasing.
 
 ## Roadmap
 

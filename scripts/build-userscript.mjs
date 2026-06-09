@@ -51,6 +51,7 @@ const entry = `
 /* ---- browser entry (not part of the tested core) ---- */
 (function () {
   'use strict';
+  const RG_VERSION = '${VERSION}'; // userscript @version (from package.json) — stamped onto <html data-rg-ver> + logged, so dev tooling can read what's actually running
   const VER = '0.4.0';
   const SRC = { lexicon: '${LEX_URL}', stress: '${STRESS_URL}', verb: '${VERB_URL}' };
   const TOTAL = ${TOTAL};
@@ -169,6 +170,7 @@ const entry = `
 
   function tick() {
     ensureStyle(document, STYLE);
+    if (document.documentElement) document.documentElement.dataset.rgVer = RG_VERSION; // queryable: document.documentElement.dataset.rgVer
     if (document.body && !document.body.dataset.rgReduceInit) {
       document.body.dataset.rgReduceInit = '1'; // default ON, once (user toggle then sticks)
       document.body.classList.add('rg-reduce');
@@ -202,9 +204,10 @@ const entry = `
   }
   setHiddenCheck(rgHidden);
 
+  if (document.documentElement) document.documentElement.dataset.rgVer = RG_VERSION; // stamp now (tick() keeps it set); readable before the first tick
   loadAll();
   setInterval(tick, 400);
-  console.log('[duolingo-russian] active (gender + stress + verb tense + vowel reduction)');
+  console.log('[duolingo-russian] v' + RG_VERSION + ' active (gender + stress + verb tense + vowel reduction)');
 })();
 `;
 
