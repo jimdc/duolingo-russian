@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.6.4
+// @version      0.7.0
 // @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, mark stress (ударение), and predict vowel reduction (akanye/ikanye) — on the prompt AND the word-bank tiles. Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
@@ -434,6 +434,83 @@ function verbTenseOf(word, map) {
 const isGendered = (spans) =>
   spans.some((s) => s.classList && GENDER_CLASSES.some((c) => s.classList.contains(c)));
 
+const metaKey = (word) => normalize(word).replace(/ё/g, 'е');
+
+/**
+ * Build aspect + motion lookups from the packed verb-meta lexicon
+ * `{ aspect: { pf, ipf }, motion: { uni, multi } }` (space-joined form lists).
+ * @returns {{aspect: Map<string,'pf'|'ipf'>, motion: Map<string,'uni'|'multi'>}}
+ */
+function makeVerbMeta(packed) {
+  const aspect = new Map();
+  const motion = new Map();
+  const fill = (map, obj) => {
+    if (!obj) return;
+    for (const k of Object.keys(obj)) for (const f of String(obj[k]).split(' ')) if (f) map.set(f, k);
+  };
+  if (packed) {
+    fill(aspect, packed.aspect);
+    fill(motion, packed.motion);
+  }
+  return { aspect, motion };
+}
+
+/** @returns {'pf'|'ipf'|null} perfective / imperfective (biaspectual verbs are absent) */
+function verbAspectOf(word, meta) {
+  return (meta && meta.aspect && meta.aspect.get(metaKey(word))) || null;
+}
+
+/** @returns {'uni'|'multi'|null} unidirectional / multidirectional (motion verbs only) */
+function verbMotionOf(word, meta) {
+  return (meta && meta.motion && meta.motion.get(metaKey(word))) || null;
+}
+
+/** Append a trailing superscript marker (aspect abbrev + motion arrow) after `last`. */
+function appendVerbMark(last, aspect, motion) {
+  const doc = last.ownerDocument;
+  if (!doc || !last.parentNode) return;
+  const mark = doc.createElement('span');
+  mark.className = 'rg-vmeta';
+  if (aspect) {
+    const a = doc.createElement('span');
+    a.className = 'rg-asp-' + aspect; // rg-asp-pf | rg-asp-ipf
+    a.textContent = aspect; // "pf" | "ipf"
+    mark.appendChild(a);
+  }
+  if (motion) {
+    const m = doc.createElement('span');
+    m.className = 'rg-mot-' + motion; // rg-mot-uni | rg-mot-multi
+    m.textContent = motion === 'uni' ? '→' : '⇄'; // one-way vs back-and-forth
+    mark.appendChild(m);
+  }
+  last.parentNode.insertBefore(mark, last.nextSibling);
+}
+
+/**
+ * Tag verb words in `root` with an aspect/motion superscript. Orthogonal to the tense
+ * COLOUR, so it runs after colorizeVerbs; skips gender-coloured words (gender wins on
+ * noun/verb homographs). Idempotent: the last span is flagged `rg-vmeta-done` so a
+ * re-run never appends a second marker.
+ * @returns {{word: string, aspect: string|null, motion: string|null}[]} words newly marked
+ */
+function colorizeVerbMeta(root, meta) {
+  if (!meta) return [];
+  const applied = [];
+  for (const { word, spans } of wordGroups(root)) {
+    if (!spans.length || isGendered(spans)) continue; // gender takes precedence
+    if (isFunctionWord(word)) continue; // skip adverb/particle homographs (e.g. домой = imperative of домыть)
+    const aspect = verbAspectOf(word, meta);
+    const motion = verbMotionOf(word, meta);
+    if (!aspect && !motion) continue;
+    const last = spans[spans.length - 1];
+    if (last.classList && last.classList.contains('rg-vmeta-done')) continue; // already marked
+    appendVerbMark(last, aspect, motion);
+    if (last.classList) last.classList.add('rg-vmeta-done');
+    applied.push({ word, aspect, motion });
+  }
+  return applied;
+}
+
 /**
  * Add a tense class to verb words in `root` that aren't already gender-coloured.
  * @returns {{word: string, tense: string, cls: string}[]}
@@ -444,6 +521,7 @@ function colorizeVerbs(root, opts = {}) {
   const applied = [];
   for (const { word, spans } of wordGroups(root)) {
     if (isGendered(spans)) continue; // gender takes precedence
+    if (isFunctionWord(word)) continue; // adverb/particle homographs of imperatives (домой, давай) aren't verbs here
     const tense = tenseOf(word);
     const cls = TENSE_CLASS[tense];
     if (!cls) continue;
@@ -653,21 +731,22 @@ function resolveGender(word, deps = {}) {
 /**
  * Run the full annotation sequence over one challenge container.
  * @param {Element} ch a `[data-test^="challenge challenge-"]` element
- * @param {{lexicon: object, stress: Map, verb: Map}} deps built lexicons
+ * @param {{lexicon: object, stress: Map, verb: Map, verbMeta?: object}} deps built lexicons
  */
 function annotateChallenge(ch, deps) {
-  const { lexicon, stress, verb } = deps || {};
+  const { lexicon, stress, verb, verbMeta } = deps || {};
   colorizeChallenge(ch, { genderOf: (w) => resolveGender(w, { lexicon, verb }) });
   colorizeVerbs(ch, { tenseOf: (w) => verbTenseOf(w, verb) }); // gender wins; runs after
   markStress(ch, stress);
   colorizeReductions(ch, stress); // stress must run first (it mutates tile text)
+  colorizeVerbMeta(ch, verbMeta); // aspect/motion superscript; appended last (trailing sibling)
 }
 
 /**
  * Annotate every challenge under `root`. Safe to call on each poll: idempotent on
  * already-painted nodes, and it picks up tiles added since the last call.
  * @param {Element|Document} root
- * @param {{lexicon: object, stress: Map, verb: Map}} deps
+ * @param {{lexicon: object, stress: Map, verb: Map, verbMeta?: object}} deps
  */
 function annotateAll(root, deps) {
   if (!root?.querySelectorAll) return;
@@ -714,14 +793,14 @@ function setLegend(doc, html) {
 /* ---- browser entry (not part of the tested core) ---- */
 (function () {
   'use strict';
-  const RG_VERSION = '0.6.4'; // userscript @version (from package.json) — stamped onto <html data-rg-ver> + logged, so dev tooling can read what's actually running
+  const RG_VERSION = '0.7.0'; // userscript @version (from package.json) — stamped onto <html data-rg-ver> + logged, so dev tooling can read what's actually running
   const VER = '0.4.0';
-  const SRC = { lexicon: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json', stress: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json', verb: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-verb-lexicon.json' };
-  const TOTAL = 18561490;
-  const state = { lexicon: null, stress: null, verb: null };
+  const SRC = { lexicon: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-gender-lexicon.json', stress: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-stress-lexicon.json', verb: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-verb-lexicon.json', verbmeta: 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data/ru-verbmeta-lexicon.json' };
+  const TOTAL = 21715440;
+  const state = { lexicon: null, stress: null, verb: null, verbMeta: null };
   const loaded = {};
   let failed = false;
-  const bytes = () => (loaded.lexicon || 0) + (loaded.stress || 0) + (loaded.verb || 0);
+  const bytes = () => (loaded.lexicon || 0) + (loaded.stress || 0) + (loaded.verb || 0) + (loaded.verbmeta || 0);
 
   // ---- IndexedDB cache (best-effort: download once, ever) ----
   const DBN = 'duo-russian', STORE = 'lex';
@@ -780,14 +859,16 @@ function setLegend(doc, html) {
       loadOne('lexicon', makeLexicon).then(function (v) { state.lexicon = v; }),
       loadOne('stress', makeStress).then(function (v) { state.stress = v; }),
       loadOne('verb', makeVerbTense).then(function (v) { state.verb = v; }),
+      loadOne('verbmeta', makeVerbMeta).then(function (v) { state.verbMeta = v; }),
     ]).catch(function (e) { failed = true; console.warn('[duolingo-russian] load failed', e); });
   }
-  const ready = () => state.lexicon && state.stress && state.verb;
+  const ready = () => state.lexicon && state.stress && state.verb && state.verbMeta;
 
   const reduceOn = () => !!(document.body && document.body.classList.contains('rg-reduce'));
   const KEY_HTML =
     'gender <span class="m">m</span> <span class="f">f</span> <span class="n">n</span>' +
     ' · tense <span class="pa">past</span> <span class="pr">pres</span> <span class="fu">fut</span> <span class="im">imp</span> <span class="in">inf</span>' +
+    ' · aspect <span class="asp">pf</span>/<span class="asp">ipf</span> · motion <span class="mot">→</span>uni<span class="mot">⇄</span>multi' +
     ' · +stress';
   const RED_ON =
     ' · reduce <span class="rda">ɐ</span><span class="rds">ə</span><span class="rdi">ɪ</span><span class="rdy">ɨ</span> <b>R</b>';
@@ -806,14 +887,20 @@ function setLegend(doc, html) {
     'body.rg-reduce .rg-rd{border-bottom:1px dotted rgba(0,0,0,.3)}',
     'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.8;font-weight:700}',
     'body.rg-reduce .rg-rd-a::after{color:#b26a00} body.rg-reduce .rg-rd-schwa::after{color:#757575} body.rg-reduce .rg-rd-i::after{color:#00838f} body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+    // Verb-meta: a trailing superscript — aspect abbrev (pf/ipf) + motion arrow (→ one-way / ⇄ both ways).
+    '.rg-vmeta{font-size:.62em;vertical-align:super;line-height:0;margin-left:1px;white-space:nowrap;font-weight:700}',
+    '.rg-vmeta .rg-asp-pf,.rg-vmeta .rg-asp-ipf{color:#455a64}',
+    '.rg-vmeta .rg-mot-uni,.rg-vmeta .rg-mot-multi{color:#00897b;margin-left:1px}',
     // Spent word-bank tiles (a tapped word's greyed placeholder) carry aria-disabled
     // and Duolingo renders their text transparent; yield our !important colour there
     // so the placed word doesn't look duplicated (we also stop annotating them, but a
     // tile painted while active keeps its class once it's spent — this covers that).
     '[aria-disabled="true"] .rg-masc,[aria-disabled="true"] .rg-fem,[aria-disabled="true"] .rg-neut,[aria-disabled="true"] .rg-past,[aria-disabled="true"] .rg-pres,[aria-disabled="true"] .rg-fut,[aria-disabled="true"] .rg-imp,[aria-disabled="true"] .rg-inf{color:inherit!important}',
     '[aria-disabled="true"] .rg-rd::after{display:none!important}',
+    '[aria-disabled="true"] .rg-vmeta{display:none!important}', // don't float a marker on a spent placeholder
     '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:70vw;cursor:pointer;user-select:none}',
     '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
+    '#rg-legend .asp{color:#455a64;font-weight:700}#rg-legend .mot{color:#00897b;font-weight:700}',
     '#rg-legend .rda{color:#b26a00}#rg-legend .rds{color:#757575}#rg-legend .rdi{color:#00838f}#rg-legend .rdy{color:#6a1b9a}',
   ].join('\n');
 
@@ -846,7 +933,7 @@ function setLegend(doc, html) {
     // Re-run every tick (no per-challenge latch): word-bank challenges mount fresh,
     // unpainted tiles in the answer area as you tap, and React can re-render tiles —
     // annotateAll is idempotent, so it paints the new nodes without doubling marks.
-    annotateAll(document, { lexicon: state.lexicon, stress: state.stress, verb: state.verb });
+    annotateAll(document, { lexicon: state.lexicon, stress: state.stress, verb: state.verb, verbMeta: state.verbMeta });
   }
 
   // Don't reveal masked words: in "Repeat what you hear" the to-be-revealed sentence

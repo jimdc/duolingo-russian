@@ -26,10 +26,12 @@ const RAW = 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src
 const LEX_URL = `${RAW}/ru-gender-lexicon.json`;
 const STRESS_URL = `${RAW}/ru-stress-lexicon.json`;
 const VERB_URL = `${RAW}/ru-verb-lexicon.json`;
+const VERBMETA_URL = `${RAW}/ru-verbmeta-lexicon.json`;
 const TOTAL =
   size('src/data/ru-gender-lexicon.json') +
   size('src/data/ru-stress-lexicon.json') +
-  size('src/data/ru-verb-lexicon.json');
+  size('src/data/ru-verb-lexicon.json') +
+  size('src/data/ru-verbmeta-lexicon.json');
 
 const header = `// ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
@@ -53,12 +55,12 @@ const entry = `
   'use strict';
   const RG_VERSION = '${VERSION}'; // userscript @version (from package.json) — stamped onto <html data-rg-ver> + logged, so dev tooling can read what's actually running
   const VER = '0.4.0';
-  const SRC = { lexicon: '${LEX_URL}', stress: '${STRESS_URL}', verb: '${VERB_URL}' };
+  const SRC = { lexicon: '${LEX_URL}', stress: '${STRESS_URL}', verb: '${VERB_URL}', verbmeta: '${VERBMETA_URL}' };
   const TOTAL = ${TOTAL};
-  const state = { lexicon: null, stress: null, verb: null };
+  const state = { lexicon: null, stress: null, verb: null, verbMeta: null };
   const loaded = {};
   let failed = false;
-  const bytes = () => (loaded.lexicon || 0) + (loaded.stress || 0) + (loaded.verb || 0);
+  const bytes = () => (loaded.lexicon || 0) + (loaded.stress || 0) + (loaded.verb || 0) + (loaded.verbmeta || 0);
 
   // ---- IndexedDB cache (best-effort: download once, ever) ----
   const DBN = 'duo-russian', STORE = 'lex';
@@ -117,14 +119,16 @@ const entry = `
       loadOne('lexicon', makeLexicon).then(function (v) { state.lexicon = v; }),
       loadOne('stress', makeStress).then(function (v) { state.stress = v; }),
       loadOne('verb', makeVerbTense).then(function (v) { state.verb = v; }),
+      loadOne('verbmeta', makeVerbMeta).then(function (v) { state.verbMeta = v; }),
     ]).catch(function (e) { failed = true; console.warn('[duolingo-russian] load failed', e); });
   }
-  const ready = () => state.lexicon && state.stress && state.verb;
+  const ready = () => state.lexicon && state.stress && state.verb && state.verbMeta;
 
   const reduceOn = () => !!(document.body && document.body.classList.contains('rg-reduce'));
   const KEY_HTML =
     'gender <span class="m">m</span> <span class="f">f</span> <span class="n">n</span>' +
     ' · tense <span class="pa">past</span> <span class="pr">pres</span> <span class="fu">fut</span> <span class="im">imp</span> <span class="in">inf</span>' +
+    ' · aspect <span class="asp">pf</span>/<span class="asp">ipf</span> · motion <span class="mot">→</span>uni<span class="mot">⇄</span>multi' +
     ' · +stress';
   const RED_ON =
     ' · reduce <span class="rda">ɐ</span><span class="rds">ə</span><span class="rdi">ɪ</span><span class="rdy">ɨ</span> <b>R</b>';
@@ -143,14 +147,20 @@ const entry = `
     'body.rg-reduce .rg-rd{border-bottom:1px dotted rgba(0,0,0,.3)}',
     'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.8;font-weight:700}',
     'body.rg-reduce .rg-rd-a::after{color:#b26a00} body.rg-reduce .rg-rd-schwa::after{color:#757575} body.rg-reduce .rg-rd-i::after{color:#00838f} body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+    // Verb-meta: a trailing superscript — aspect abbrev (pf/ipf) + motion arrow (→ one-way / ⇄ both ways).
+    '.rg-vmeta{font-size:.62em;vertical-align:super;line-height:0;margin-left:1px;white-space:nowrap;font-weight:700}',
+    '.rg-vmeta .rg-asp-pf,.rg-vmeta .rg-asp-ipf{color:#455a64}',
+    '.rg-vmeta .rg-mot-uni,.rg-vmeta .rg-mot-multi{color:#00897b;margin-left:1px}',
     // Spent word-bank tiles (a tapped word's greyed placeholder) carry aria-disabled
     // and Duolingo renders their text transparent; yield our !important colour there
     // so the placed word doesn't look duplicated (we also stop annotating them, but a
     // tile painted while active keeps its class once it's spent — this covers that).
     '[aria-disabled="true"] .rg-masc,[aria-disabled="true"] .rg-fem,[aria-disabled="true"] .rg-neut,[aria-disabled="true"] .rg-past,[aria-disabled="true"] .rg-pres,[aria-disabled="true"] .rg-fut,[aria-disabled="true"] .rg-imp,[aria-disabled="true"] .rg-inf{color:inherit!important}',
     '[aria-disabled="true"] .rg-rd::after{display:none!important}',
+    '[aria-disabled="true"] .rg-vmeta{display:none!important}', // don't float a marker on a spent placeholder
     '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:70vw;cursor:pointer;user-select:none}',
     '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
+    '#rg-legend .asp{color:#455a64;font-weight:700}#rg-legend .mot{color:#00897b;font-weight:700}',
     '#rg-legend .rda{color:#b26a00}#rg-legend .rds{color:#757575}#rg-legend .rdi{color:#00838f}#rg-legend .rdy{color:#6a1b9a}',
   ].join('\\n');
 
@@ -183,7 +193,7 @@ const entry = `
     // Re-run every tick (no per-challenge latch): word-bank challenges mount fresh,
     // unpainted tiles in the answer area as you tap, and React can re-render tiles —
     // annotateAll is idempotent, so it paints the new nodes without doubling marks.
-    annotateAll(document, { lexicon: state.lexicon, stress: state.stress, verb: state.verb });
+    annotateAll(document, { lexicon: state.lexicon, stress: state.stress, verb: state.verb, verbMeta: state.verbMeta });
   }
 
   // Don't reveal masked words: in "Repeat what you hear" the to-be-revealed sentence

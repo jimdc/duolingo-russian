@@ -53,3 +53,11 @@ test('gender-coloured words are skipped (gender wins on homographs)', () => {
   assert.equal(applied.length, 0);
   assert.equal(doc.querySelectorAll('.rg-past').length, 0);
 });
+
+test('function-word homographs of imperatives are not verb-coloured (домой)', () => {
+  assert.equal(t('домой'), 'imp'); // the lexicon DOES hold it (imperative of домыть)…
+  const doc = challengeWith('домой'); // …but домой here is the adverb "homeward"
+  const applied = colorizeVerbs(doc, { tenseOf: t });
+  assert.equal(applied.length, 0);
+  assert.equal(doc.querySelectorAll('.rg-imp').length, 0);
+});

@@ -13,7 +13,7 @@
 // on an existing .rg-rd), so re-painting never doubles a mark.
 
 import { colorizeChallenge } from './colorize.js';
-import { colorizeVerbs, verbTenseOf } from './verbs.js';
+import { colorizeVerbs, verbTenseOf, colorizeVerbMeta } from './verbs.js';
 import { lexiconGender } from './lexicon.js';
 import { genderOf } from './ru-gender.js';
 import { markStress } from './stress.js';
@@ -38,21 +38,22 @@ export function resolveGender(word, deps = {}) {
 /**
  * Run the full annotation sequence over one challenge container.
  * @param {Element} ch a `[data-test^="challenge challenge-"]` element
- * @param {{lexicon: object, stress: Map, verb: Map}} deps built lexicons
+ * @param {{lexicon: object, stress: Map, verb: Map, verbMeta?: object}} deps built lexicons
  */
 export function annotateChallenge(ch, deps) {
-  const { lexicon, stress, verb } = deps || {};
+  const { lexicon, stress, verb, verbMeta } = deps || {};
   colorizeChallenge(ch, { genderOf: (w) => resolveGender(w, { lexicon, verb }) });
   colorizeVerbs(ch, { tenseOf: (w) => verbTenseOf(w, verb) }); // gender wins; runs after
   markStress(ch, stress);
   colorizeReductions(ch, stress); // stress must run first (it mutates tile text)
+  colorizeVerbMeta(ch, verbMeta); // aspect/motion superscript; appended last (trailing sibling)
 }
 
 /**
  * Annotate every challenge under `root`. Safe to call on each poll: idempotent on
  * already-painted nodes, and it picks up tiles added since the last call.
  * @param {Element|Document} root
- * @param {{lexicon: object, stress: Map, verb: Map}} deps
+ * @param {{lexicon: object, stress: Map, verb: Map, verbMeta?: object}} deps
  */
 export function annotateAll(root, deps) {
   if (!root?.querySelectorAll) return;

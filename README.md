@@ -4,6 +4,7 @@ A userscript that annotates the **Russian** course on Duolingo's web app:
 
 - **Gender** — nouns & adjectives coloured 🔵 masculine · 🔴 feminine · 🟢 neuter
 - **Verb tense/mood** — verbs coloured 🟠 past · teal present · 🟣 future · brown imperative · slate infinitive
+- **Aspect & verbs of motion** — a small superscript on each verb: `ᵖᶠ`/`ⁱᵖᶠ` (perfective vs imperfective) and, for the base verbs of motion, a direction arrow `→` one-way (unidirectional) vs `⇄` round-trip (multidirectional) — so `иду́` ≠ `хожу́`
 - **Stress (ударение)** — a combining acute on the stressed vowel of every word (`пожа́луйста`, `ведро́`)
 - **Vowel reduction (akanye/ikanye)** — a small IPA superscript predicting how each *unstressed* vowel is pronounced: ɐ pre-stress · ə schwa · ɪ soft (ikanye) · ɨ after ж/ш/ц. On by default; press **R** (or click the legend) to toggle.
 
@@ -21,6 +22,10 @@ Function words (particles, pronouns) are left alone. Gender, tense, and stress a
 | Gender + stress | Verb tense |
 |---|---|
 | ![gender + stress](images/gender-stress.png) | ![verb tense](images/verb-tense.png) |
+
+Aspect (`ᵖᶠ`/`ⁱᵖᶠ`) and verbs of motion (`→` one-way vs `⇄` back-and-forth) ride as a superscript on each verb, independent of the tense colour:
+
+![aspect + verbs of motion](images/aspect-motion.png)
 
 Word-bank / matching tiles are annotated too (English tiles left alone):
 
@@ -52,6 +57,7 @@ Duolingo doesn't expose gender/stress/tense, so we annotate from a local diction
 2. Look each word up in a wordform → {gender, stress, tense} lexicon built from [OpenRussian](https://github.com/Badestrand/russian-dictionary). Because every declension/conjugation cell is included, inflected forms resolve and non-nouns simply aren't found (so they're left uncoloured).
 3. Add a gender/tense colour class to the word's Cyrillic letters, and insert a combining acute after the stressed vowel (counted by Cyrillic letter, so it lands correctly whether the word is one letter-per-span or a single tile node).
 4. From that stress position, predict each unstressed vowel's reduction (standard Moscow norm — akanye + ikanye) and tag it with a small IPA superscript (`.rg-rd` + `data-ipa`, rendered via CSS, so no text is rewritten). This needs no extra data — just spelling + the stress we already know.
+5. Tag each verb with its **aspect** (perfective/imperfective, from the lexicon) and, for the ~14 base **verbs of motion**, its directionality (unidirectional/multidirectional, from a curated list, collision-checked against homographs). Both ride as a trailing superscript, independent of the tense colour; function-word homographs of imperatives (`домой`, `давай`) are skipped.
 
 The core in `src/` is dependency-free and packaging-agnostic; `scripts/build-userscript.mjs` bundles it into the userscript (and could emit an MV3 extension later).
 
@@ -59,7 +65,7 @@ The core in `src/` is dependency-free and packaging-agnostic; `scripts/build-use
 
 ```sh
 npm install
-npm test            # node --test — 56 tests, incl. real captured-DOM fixtures
+npm test            # node --test — 63 tests, incl. real captured-DOM fixtures
 npm run build       # bundle src/ → dist/duolingo-russian.user.js
 npm run release     # bump version, test, rebuild, commit (then: git push). -- minor / -- 1.2.3 / -- --dry
 node scripts/build-lexicon.mjs   # rebuild gender data from data/*.csv (gitignored)
@@ -72,7 +78,7 @@ The userscript `@version` comes from `package.json` (the build injects it), so `
 | Path | What |
 |---|---|
 | `src/ru-gender.js` | `normalize()` + a fallback ending heuristic |
-| `src/lexicon.js` · `src/stress.js` · `src/verbs.js` | gender / stress / tense lookups |
+| `src/lexicon.js` · `src/stress.js` · `src/verbs.js` | gender / stress / tense lookups + verb aspect & motion markers |
 | `src/colorize.js` | shared `wordGroups()` (prompt + tiles) + gender colouring; `setHiddenCheck()` skips words Duolingo is masking |
 | `src/reduce.js` | predicts vowel reduction (akanye/ikanye) from spelling + stress |
 | `src/annotate.js` | runs the full gender→tense→stress→reduce pass per challenge (idempotent; re-run each tick) |
@@ -84,7 +90,7 @@ The userscript `@version` comes from `package.json` (the build injects it), so `
 ## Testing
 
 ```sh
-npm test          # headless unit tests (node --test, 56)
+npm test          # headless unit tests (node --test, 63)
 npm run visual    # render sample sentences, a word bank, and vowel reduction in real Chrome → images/*.png (the README shots)
 ```
 

@@ -2,19 +2,25 @@
   {
     "name": "gender-stress",
     "sentence": "Дай мне красную сумку, пожалуйста.",
-    "coloured": 15,
+    "coloured": 17,
     "stress": 3
   },
   {
     "name": "verb-tense",
     "sentence": "Я читаю книгу, помыл сумку и помою посуду.",
-    "coloured": 31,
+    "coloured": 37,
     "stress": 6
+  },
+  {
+    "name": "aspect-motion",
+    "sentence": "Я иду домой, но часто хожу гулять.",
+    "coloured": 27,
+    "stress": 5
   },
   {
     "name": "word-bank",
     "sentence": "красное ведро мальчик книга читаю the",
-    "coloured": 5,
+    "coloured": 7,
     "stress": 5
   },
   {

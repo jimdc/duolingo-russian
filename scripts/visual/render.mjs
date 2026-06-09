@@ -23,22 +23,27 @@ const MODULES = ['src/stopwords.js', 'src/ru-gender.js', 'src/colorize.js', 'src
 const G = JSON.parse(read('src/data/ru-gender-lexicon.json'));
 const S = JSON.parse(read('src/data/ru-stress-lexicon.json'));
 const V = JSON.parse(read('src/data/ru-verb-lexicon.json'));
+const VM = JSON.parse(read('src/data/ru-verbmeta-lexicon.json'));
 const gSets = { m: new Set(G.m.split(' ')), f: new Set(G.f.split(' ')), n: new Set(G.n.split(' ')) };
 const sMap = new Map(); for (const k of Object.keys(S)) for (const w of S[k].split(' ')) sMap.set(w, k);
 const vMap = new Map(); for (const k of Object.keys(V)) for (const w of V[k].split(' ')) vMap.set(w, k);
+const aspMap = new Map(); for (const k of Object.keys(VM.aspect)) for (const w of VM.aspect[k].split(' ')) if (w) aspMap.set(w, k);
+const motMap = new Map(); for (const k of Object.keys(VM.motion)) for (const w of VM.motion[k].split(' ')) if (w) motMap.set(w, k);
 const norm = (w) => w.toLowerCase().normalize('NFC').replace(/[^Ѐ-ӿ]/g, '').replace(/ё/g, 'е');
 
 function sliceFor(sentence) {
-  const g = { m: [], f: [], n: [] }, s = {}, v = {};
+  const g = { m: [], f: [], n: [] }, s = {}, v = {}, asp = {}, mot = {};
   for (const raw of sentence.split(/\s+/)) {
     const w = norm(raw);
     if (!w) continue;
     for (const k of ['m', 'f', 'n']) if (gSets[k].has(w)) g[k].push(w);
     if (sMap.has(w)) (s[sMap.get(w)] ??= []).push(w);
     if (vMap.has(w)) (v[vMap.get(w)] ??= []).push(w);
+    if (aspMap.has(w)) (asp[aspMap.get(w)] ??= []).push(w);
+    if (motMap.has(w)) (mot[motMap.get(w)] ??= []).push(w);
   }
   const join = (o) => Object.fromEntries(Object.entries(o).map(([k, a]) => [k, [...new Set(a)].join(' ')]));
-  return { gender: join(g), stress: join(s), verb: join(v) };
+  return { gender: join(g), stress: join(s), verb: join(v), verbMeta: { aspect: join(asp), motion: join(mot) } };
 }
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -72,6 +77,10 @@ const CSS = [
   'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.85;font-weight:700}',
   'body.rg-reduce .rg-rd-a::after{color:#b26a00}body.rg-reduce .rg-rd-schwa::after{color:#757575}'
     + 'body.rg-reduce .rg-rd-i::after{color:#00838f}body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+  // Verb-meta: trailing aspect (pf/ipf) + motion-arrow superscript.
+  '.rg-vmeta{font-size:.62em;vertical-align:super;line-height:0;margin-left:1px;white-space:nowrap;font-weight:700}',
+  '.rg-vmeta .rg-asp-pf,.rg-vmeta .rg-asp-ipf{color:#455a64}',
+  '.rg-vmeta .rg-mot-uni,.rg-vmeta .rg-mot-multi{color:#00897b;margin-left:1px}',
 ].join('');
 
 // Runs in-page: build lexicons from the sliced payload and annotate the prompt.
@@ -79,17 +88,21 @@ function annotate(data) {
   const lex = makeLexicon(data.gender);
   const stress = makeStress(data.stress);
   const verb = makeVerbTense(data.verb);
+  const verbMeta = makeVerbMeta(data.verbMeta);
   const ch = document.querySelector('[data-test^="challenge challenge-"]');
   colorizeChallenge(ch, { genderOf: (w) => lexiconGender(w, lex) });
   colorizeVerbs(ch, { tenseOf: (w) => verbTenseOf(w, verb) });
   markStress(ch, stress);
   if (data.reduce) { colorizeReductions(ch, stress); document.body.classList.add('rg-reduce'); }
+  colorizeVerbMeta(ch, verbMeta); // aspect/motion superscript, appended last
 }
 
 // A shot is either a prompt `sentence` or a `words` word-bank (tiles).
 const SHOTS = [
   { name: 'gender-stress', sentence: 'Дай мне красную сумку, пожалуйста.' },
   { name: 'verb-tense', sentence: 'Я читаю книгу, помыл сумку и помою посуду.' },
+  // Aspect (pf/ipf) + verbs of motion: иду one-way (→), хожу back-and-forth (⇄).
+  { name: 'aspect-motion', sentence: 'Я иду домой, но часто хожу гулять.' },
   { name: 'word-bank', words: ['красное', 'ведро', 'мальчик', 'книга', 'читаю', 'the'] },
   // Vowel reduction (akanye/ikanye) — these two words alone show all four hints:
   // ɐ (pre-stress о/а), ə (schwa), ɨ (е after ш), ɪ (soft е). Both fully in-lexicon.
