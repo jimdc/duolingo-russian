@@ -57,7 +57,7 @@ The core in `src/` is dependency-free and packaging-agnostic; `scripts/build-use
 
 ```sh
 npm install
-npm test            # node --test — 39 tests, incl. real captured-DOM fixtures
+npm test            # node --test — 54 tests, incl. real captured-DOM fixtures
 npm run build       # bundle src/ → dist/duolingo-russian.user.js
 npm run release     # bump version, test, rebuild, commit (then: git push). -- minor / -- 1.2.3 / -- --dry
 node scripts/build-lexicon.mjs   # rebuild gender data from data/*.csv (gitignored)
@@ -71,27 +71,32 @@ The userscript `@version` comes from `package.json` (the build injects it), so `
 |---|---|
 | `src/ru-gender.js` | `normalize()` + a fallback ending heuristic |
 | `src/lexicon.js` · `src/stress.js` · `src/verbs.js` | gender / stress / tense lookups |
-| `src/colorize.js` | shared `wordGroups()` (prompt + tiles) + gender colouring |
+| `src/colorize.js` | shared `wordGroups()` (prompt + tiles) + gender colouring; `setHiddenCheck()` skips words Duolingo is masking |
 | `src/reduce.js` | predicts vowel reduction (akanye/ikanye) from spelling + stress |
+| `src/annotate.js` | runs the full gender→tense→stress→reduce pass per challenge (idempotent; re-run each tick) |
 | `src/data/*.json` | the shipped lexicons (built from OpenRussian) |
 | `tests/fixtures/` | real Duolingo Russian challenge captures |
 | `scripts/build-*.mjs` | lexicon builders + userscript bundler |
+| `scripts/visual/*` | render (Tier-1), live screenshot + capture (Tier-2), `chrome:debug` launcher |
 
 ## Testing
 
 ```sh
-npm test          # headless unit tests (node --test, 39)
+npm test          # headless unit tests (node --test, 54)
 npm run visual    # render sample sentences, a word bank, and vowel reduction in real Chrome → images/*.png (the README shots)
 ```
 
 `npm run visual` drives your **system Chrome** (no browser download) via `playwright-core`, renders Duolingo-shaped prompt and word-bank DOM through the real annotation modules, screenshots each to `images/`, and fails if nothing rendered.
 
-**Live spot-check on real lessons** (Tier 2) — quit Chrome, relaunch with remote debugging (keeps your login + Tampermonkey), open a lesson, then capture it:
+**Live spot-check on real lessons** (Tier 2) — launch a debug-enabled Chrome on a dedicated dev profile (so the debug port is never on your everyday browser), log into Duolingo there once, open a lesson, then:
 
 ```sh
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-npm run visual:live   # connects over CDP → images/live-lesson.png
+npm run chrome:debug   # debug Chrome on ~/.chrome-duo-dev (runs alongside your normal Chrome)
+npm run visual:live    # connects over CDP → images/live-lesson.png
+npm run capture        # records each challenge's real DOM + masking styles → captures/ (gitignored)
 ```
+
+> First run on the dev profile: install Tampermonkey + the script there, then enable **Developer mode → Tampermonkey → Allow User Scripts** in `chrome://extensions` (same Chrome gotcha as [Install](#install)) — otherwise the script never runs and `visual:live` screenshots a bare lesson. (`npm run capture` reads Duolingo's raw DOM, so it works regardless.)
 
 ## Roadmap
 

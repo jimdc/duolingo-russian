@@ -15,7 +15,7 @@ const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
 const strip = (s) => s.replace(/^\s*import[^\n]*\n/gm, '').replace(/^export\s+/gm, '');
 
 // Same modules/order the userscript bundles — this tests the real rendering code.
-const MODULES = ['src/ru-gender.js', 'src/colorize.js', 'src/lexicon.js', 'src/stress.js', 'src/verbs.js', 'src/reduce.js', 'src/ui.js']
+const MODULES = ['src/stopwords.js', 'src/ru-gender.js', 'src/colorize.js', 'src/lexicon.js', 'src/stress.js', 'src/verbs.js', 'src/reduce.js', 'src/ui.js']
   .map((p) => strip(read(p)))
   .join('\n');
 

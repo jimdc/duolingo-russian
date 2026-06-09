@@ -5,3 +5,6 @@ node_modules/
 # Raw OpenRussian CSVs (8MB each) — source for scripts/build-lexicon.mjs.
 # Anchored to repo root so it does NOT match src/data/ (the shipped lexicon).
 /data/
+
+# Live challenge captures from scripts/visual/capture.mjs — raw; hand-pick into tests/fixtures/.
+/captures/

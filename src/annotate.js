@@ -15,8 +15,25 @@
 import { colorizeChallenge } from './colorize.js';
 import { colorizeVerbs, verbTenseOf } from './verbs.js';
 import { lexiconGender } from './lexicon.js';
+import { genderOf } from './ru-gender.js';
 import { markStress } from './stress.js';
 import { colorizeReductions } from './reduce.js';
+
+/**
+ * Gender for colouring: the OpenRussian lexicon is authoritative; if a word is
+ * absent from it, fall back to the ending heuristic — but ONLY for words that
+ * aren't verb forms (those are left for tense colouring) and aren't function
+ * words (genderOf's stoplist handles those). This recovers common nouns missing
+ * from OpenRussian (e.g. поли́тик) without re-introducing the mis-colouring the
+ * lexicon-first switch fixed. @returns {'Masculine'|'Feminine'|'Neuter'|'Unknown'}
+ */
+export function resolveGender(word, deps = {}) {
+  const { lexicon, verb } = deps;
+  const g = lexiconGender(word, lexicon);
+  if (g !== 'Unknown') return g; // lexicon wins (incl. on homographs)
+  if (verbTenseOf(word, verb)) return 'Unknown'; // verb form → tense colouring owns it
+  return genderOf(word); // guarded ending heuristic (function words → Unknown)
+}
 
 /**
  * Run the full annotation sequence over one challenge container.
@@ -25,7 +42,7 @@ import { colorizeReductions } from './reduce.js';
  */
 export function annotateChallenge(ch, deps) {
   const { lexicon, stress, verb } = deps || {};
-  colorizeChallenge(ch, { genderOf: (w) => lexiconGender(w, lexicon) });
+  colorizeChallenge(ch, { genderOf: (w) => resolveGender(w, { lexicon, verb }) });
   colorizeVerbs(ch, { tenseOf: (w) => verbTenseOf(w, verb) }); // gender wins; runs after
   markStress(ch, stress);
   colorizeReductions(ch, stress); // stress must run first (it mutates tile text)

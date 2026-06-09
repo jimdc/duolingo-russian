@@ -18,7 +18,7 @@ const stripModule = (s) =>
 // Order: ru-gender (normalize) + colorize (wordGroups) before modules that use them;
 // annotate pulls them all together, so it comes last (before ui).
 const modules = [
-  'src/ru-gender.js', 'src/colorize.js', 'src/lexicon.js',
+  'src/stopwords.js', 'src/ru-gender.js', 'src/colorize.js', 'src/lexicon.js',
   'src/stress.js', 'src/verbs.js', 'src/reduce.js', 'src/annotate.js', 'src/ui.js',
 ].map((p) => stripModule(read(p)));
 

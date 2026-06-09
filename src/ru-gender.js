@@ -8,6 +8,8 @@
 // 'Unknown' means "don't color this" — function words, ambiguous -ь nouns,
 // and anything non-Cyrillic all land here on purpose.
 
+import { isFunctionWord } from './stopwords.js';
+
 // -мя nouns: end in -я but are neuter (the classic trap).
 const NEUTER_MYA = new Set([
   'время', 'имя', 'племя', 'знамя', 'семя', 'стремя',
@@ -33,14 +35,6 @@ const SOFT_SIGN_FEMININE = new Set([
   'степень', 'тень', 'кость', 'кровь',
 ]);
 
-// Function words carry no gender to color — keeps adverbs/conjunctions/particles
-// from being mis-colored by the bare ending rules (e.g. "где" ends in -е).
-const STOPWORDS = new Set([
-  'там', 'тут', 'здесь', 'где', 'куда', 'когда', 'как', 'что', 'чтобы',
-  'и', 'а', 'но', 'или', 'не', 'ни', 'же', 'ли', 'бы', 'да', 'нет',
-  'очень', 'тоже', 'также', 'уже', 'ещё', 'еще', 'вот', 'потому',
-]);
-
 const CYRILLIC_CONSONANTS = new Set('бвгджзйклмнпрстфхцчшщ'.split(''));
 
 /** Strip combining accents (ударение, e.g. ра́дио), punctuation, and case. */
@@ -61,7 +55,7 @@ export function normalize(raw) {
 export function genderOf(raw) {
   const w = normalize(raw);
   if (w.length === 0) return 'Unknown';
-  if (STOPWORDS.has(w)) return 'Unknown';
+  if (isFunctionWord(w)) return 'Unknown';
 
   if (NEUTER_MYA.has(w)) return 'Neuter';
   if (MASCULINE_DESPITE_A_YA.has(w)) return 'Masculine';
