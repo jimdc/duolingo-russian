@@ -142,6 +142,12 @@ const entry = `
     'body.rg-reduce .rg-rd{border-bottom:1px dotted rgba(0,0,0,.3)}',
     'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.8;font-weight:700}',
     'body.rg-reduce .rg-rd-a::after{color:#b26a00} body.rg-reduce .rg-rd-schwa::after{color:#757575} body.rg-reduce .rg-rd-i::after{color:#00838f} body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+    // Spent word-bank tiles (a tapped word's greyed placeholder) carry aria-disabled
+    // and Duolingo renders their text transparent; yield our !important colour there
+    // so the placed word doesn't look duplicated (we also stop annotating them, but a
+    // tile painted while active keeps its class once it's spent — this covers that).
+    '[aria-disabled="true"] .rg-masc,[aria-disabled="true"] .rg-fem,[aria-disabled="true"] .rg-neut,[aria-disabled="true"] .rg-past,[aria-disabled="true"] .rg-pres,[aria-disabled="true"] .rg-fut,[aria-disabled="true"] .rg-imp,[aria-disabled="true"] .rg-inf{color:inherit!important}',
+    '[aria-disabled="true"] .rg-rd::after{display:none!important}',
     '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:70vw;cursor:pointer;user-select:none}',
     '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
     '#rg-legend .rda{color:#b26a00}#rg-legend .rds{color:#757575}#rg-legend .rdi{color:#00838f}#rg-legend .rdy{color:#6a1b9a}',

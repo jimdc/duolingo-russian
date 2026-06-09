@@ -57,7 +57,7 @@ The core in `src/` is dependency-free and packaging-agnostic; `scripts/build-use
 
 ```sh
 npm install
-npm test            # node --test — 54 tests, incl. real captured-DOM fixtures
+npm test            # node --test — 56 tests, incl. real captured-DOM fixtures
 npm run build       # bundle src/ → dist/duolingo-russian.user.js
 npm run release     # bump version, test, rebuild, commit (then: git push). -- minor / -- 1.2.3 / -- --dry
 node scripts/build-lexicon.mjs   # rebuild gender data from data/*.csv (gitignored)
@@ -82,7 +82,7 @@ The userscript `@version` comes from `package.json` (the build injects it), so `
 ## Testing
 
 ```sh
-npm test          # headless unit tests (node --test, 54)
+npm test          # headless unit tests (node --test, 56)
 npm run visual    # render sample sentences, a word bank, and vowel reduction in real Chrome → images/*.png (the README shots)
 ```
 

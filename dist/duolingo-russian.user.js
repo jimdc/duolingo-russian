@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.6.2
+// @version      0.6.3
 // @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, mark stress (ударение), and predict vowel reduction (akanye/ikanye) — on the prompt AND the word-bank tiles. Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
@@ -203,6 +203,19 @@ function setHiddenCheck(fn) {
 }
 const isHidden = (el) => !!(hiddenCheck && el && hiddenCheck(el));
 
+// A tapped-and-placed word leaves a "spent" greyed placeholder in the bank, marked
+// aria-disabled on its button (Duolingo renders its text transparent — an empty
+// slot). Colouring it (our !important colour overriding that transparent) makes the
+// placed word look duplicated, so skip spent tiles. Structural, not colour-based:
+// once we've painted a tile, computed colour is ours, so the masking gate can't see
+// the transparency — but aria-disabled is Duolingo's and we never touch it.
+const isSpentTile = (tile) => {
+  for (let n = tile; n; n = n.parentElement) {
+    if (n.getAttribute && n.getAttribute('aria-disabled') === 'true') return true;
+  }
+  return false;
+};
+
 /** Split an ordered list of char spans into word-groups on whitespace spans. */
 function groupByWhitespace(spans) {
   const groups = [];
@@ -256,7 +269,7 @@ function wordGroups(root) {
   // Only Russian tiles matter — non-Cyrillic tiles (e.g. English answers) are
   // left out so the colour/stress passes never touch them.
   for (const tile of root.querySelectorAll('[data-test="challenge-tap-token-text"]')) {
-    if (isHidden(tile)) continue;
+    if (isHidden(tile) || isSpentTile(tile)) continue;
     if (hasCyrillic(tile)) groups.push({ word: tile.textContent || '', spans: [tile] });
   }
 
@@ -792,6 +805,12 @@ function setLegend(doc, html) {
     'body.rg-reduce .rg-rd{border-bottom:1px dotted rgba(0,0,0,.3)}',
     'body.rg-reduce .rg-rd::after{content:attr(data-ipa);font-size:.6em;line-height:0;vertical-align:.5em;margin:0 .5px;opacity:.8;font-weight:700}',
     'body.rg-reduce .rg-rd-a::after{color:#b26a00} body.rg-reduce .rg-rd-schwa::after{color:#757575} body.rg-reduce .rg-rd-i::after{color:#00838f} body.rg-reduce .rg-rd-y::after{color:#6a1b9a}',
+    // Spent word-bank tiles (a tapped word's greyed placeholder) carry aria-disabled
+    // and Duolingo renders their text transparent; yield our !important colour there
+    // so the placed word doesn't look duplicated (we also stop annotating them, but a
+    // tile painted while active keeps its class once it's spent — this covers that).
+    '[aria-disabled="true"] .rg-masc,[aria-disabled="true"] .rg-fem,[aria-disabled="true"] .rg-neut,[aria-disabled="true"] .rg-past,[aria-disabled="true"] .rg-pres,[aria-disabled="true"] .rg-fut,[aria-disabled="true"] .rg-imp,[aria-disabled="true"] .rg-inf{color:inherit!important}',
+    '[aria-disabled="true"] .rg-rd::after{display:none!important}',
     '#rg-legend{position:fixed;left:12px;bottom:12px;z-index:99999;font:12px/1.5 system-ui,sans-serif;background:rgba(255,255,255,.96);color:#333;border:1px solid #ddd;border-radius:8px;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);max-width:70vw;cursor:pointer;user-select:none}',
     '#rg-legend .m{color:#1565c0}#rg-legend .f{color:#c2185b}#rg-legend .n{color:#2e7d32}#rg-legend .pa{color:#e65100}#rg-legend .pr{color:#00838f}#rg-legend .fu{color:#6a1b9a}#rg-legend .im{color:#5d4037}#rg-legend .in{color:#455a64}',
     '#rg-legend .rda{color:#b26a00}#rg-legend .rds{color:#757575}#rg-legend .rdi{color:#00838f}#rg-legend .rdy{color:#6a1b9a}',

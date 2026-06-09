@@ -1,6 +1,6 @@
 {
   "name": "duolingo-russian",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Duolingo web helper for Russian: color words by grammatical gender, mark stress (ударение), and more.",
   "type": "module",
   "scripts": {

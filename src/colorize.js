@@ -35,6 +35,19 @@ export function setHiddenCheck(fn) {
 }
 const isHidden = (el) => !!(hiddenCheck && el && hiddenCheck(el));
 
+// A tapped-and-placed word leaves a "spent" greyed placeholder in the bank, marked
+// aria-disabled on its button (Duolingo renders its text transparent — an empty
+// slot). Colouring it (our !important colour overriding that transparent) makes the
+// placed word look duplicated, so skip spent tiles. Structural, not colour-based:
+// once we've painted a tile, computed colour is ours, so the masking gate can't see
+// the transparency — but aria-disabled is Duolingo's and we never touch it.
+const isSpentTile = (tile) => {
+  for (let n = tile; n; n = n.parentElement) {
+    if (n.getAttribute && n.getAttribute('aria-disabled') === 'true') return true;
+  }
+  return false;
+};
+
 /** Split an ordered list of char spans into word-groups on whitespace spans. */
 function groupByWhitespace(spans) {
   const groups = [];
@@ -88,7 +101,7 @@ export function wordGroups(root) {
   // Only Russian tiles matter — non-Cyrillic tiles (e.g. English answers) are
   // left out so the colour/stress passes never touch them.
   for (const tile of root.querySelectorAll('[data-test="challenge-tap-token-text"]')) {
-    if (isHidden(tile)) continue;
+    if (isHidden(tile) || isSpentTile(tile)) continue;
     if (hasCyrillic(tile)) groups.push({ word: tile.textContent || '', spans: [tile] });
   }
 
