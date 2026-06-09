@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Duolingo Russian — gender, stress & verb tense
 // @namespace    https://github.com/jimdc/duolingo-russian
-// @version      0.6.0
+// @version      0.6.1
 // @description  On Duolingo Russian: colour nouns/adjectives by gender, verbs by tense, mark stress (ударение), and predict vowel reduction (akanye/ikanye) — on the prompt AND the word-bank tiles. Data from OpenRussian, cached locally so it downloads once.
 // @author       jimdc
 // @homepageURL  https://github.com/jimdc/duolingo-russian
@@ -119,6 +119,18 @@ const isWhitespace = (s) => /^\s*$/.test(s.textContent || '');
 
 const hasCyrillic = (s) => /[Ѐ-ӿ]/.test(s.textContent || '');
 
+// Optional gate: skip words Duolingo is visually masking (e.g. the to-be-revealed
+// sentence in "Repeat what you hear"). Their real letters sit in the DOM but are
+// hidden by style, so our `!important` colour would reveal them — i.e. leak the
+// answer. The check needs layout, so the userscript entry injects a getComputedStyle
+// predicate; in headless tests it's unset and nothing is hidden.
+let hiddenCheck = null;
+/** @param {((el: Element) => boolean) | null} fn predicate: is this word masked? */
+function setHiddenCheck(fn) {
+  hiddenCheck = typeof fn === 'function' ? fn : null;
+}
+const isHidden = (el) => !!(hiddenCheck && el && hiddenCheck(el));
+
 /** Split an ordered list of char spans into word-groups on whitespace spans. */
 function groupByWhitespace(spans) {
   const groups = [];
@@ -163,6 +175,7 @@ function wordGroups(root) {
   for (const container of containers) {
     const charSpans = [...container.children].filter(isCharSpan);
     for (const spans of groupByWhitespace(charSpans)) {
+      if (isHidden(spans[0])) continue; // masked (to-be-revealed) word — don't reveal it
       groups.push({ word: spans.map((s) => s.textContent).join(''), spans });
     }
   }
@@ -171,6 +184,7 @@ function wordGroups(root) {
   // Only Russian tiles matter — non-Cyrillic tiles (e.g. English answers) are
   // left out so the colour/stress passes never touch them.
   for (const tile of root.querySelectorAll('[data-test="challenge-tap-token-text"]')) {
+    if (isHidden(tile)) continue;
     if (hasCyrillic(tile)) groups.push({ word: tile.textContent || '', spans: [tile] });
   }
 
@@ -521,6 +535,46 @@ function colorizeReductions(root, stressMap) {
   return applied;
 }
 
+// Annotate one Duolingo challenge in place: gender colour, verb tense, stress mark,
+// and (CSS-gated) vowel-reduction hints — the exact sequence the userscript runs on
+// every poll. Kept as one tested unit so the browser entry can't drift from the
+// tests, and so the "re-run paints newly-tapped answer-area tiles" contract is
+// covered (see tests/reannotate.test.js).
+//
+// Why re-run instead of paint-once: a word-bank challenge renders the bank first,
+// then — as you tap words — Duolingo mounts FRESH, unpainted tiles in the answer
+// area. The entry used to latch each challenge "done" after the first paint, so the
+// assembled answer stayed bare (no gender/stress/reduction). Re-running every tick
+// catches those new nodes. Each step is idempotent at the element level (stress
+// bails on an existing acute, the class-adders are no-ops on repeat, reduction bails
+// on an existing .rg-rd), so re-painting never doubles a mark.
+
+/**
+ * Run the full annotation sequence over one challenge container.
+ * @param {Element} ch a `[data-test^="challenge challenge-"]` element
+ * @param {{lexicon: object, stress: Map, verb: Map}} deps built lexicons
+ */
+function annotateChallenge(ch, deps) {
+  const { lexicon, stress, verb } = deps || {};
+  colorizeChallenge(ch, { genderOf: (w) => lexiconGender(w, lexicon) });
+  colorizeVerbs(ch, { tenseOf: (w) => verbTenseOf(w, verb) }); // gender wins; runs after
+  markStress(ch, stress);
+  colorizeReductions(ch, stress); // stress must run first (it mutates tile text)
+}
+
+/**
+ * Annotate every challenge under `root`. Safe to call on each poll: idempotent on
+ * already-painted nodes, and it picks up tiles added since the last call.
+ * @param {Element|Document} root
+ * @param {{lexicon: object, stress: Map, verb: Map}} deps
+ */
+function annotateAll(root, deps) {
+  if (!root?.querySelectorAll) return;
+  for (const ch of root.querySelectorAll('[data-test^="challenge challenge-"]')) {
+    annotateChallenge(ch, deps);
+  }
+}
+
 // Minimal DOM glue for the userscript: the gender stylesheet and the legend.
 // Lives here (not inline in the build script) so the mount targets are unit-testable.
 
@@ -680,15 +734,29 @@ function setLegend(doc, html) {
     const lg = document.getElementById('rg-legend');
     if (lg && !lg.dataset.rgClick) { lg.dataset.rgClick = '1'; lg.addEventListener('click', toggleReduce); }
     if (!ready()) return;
-    for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
-      if (ch.dataset.rgDone) continue;
-      const g = colorizeChallenge(ch, { genderOf: function (w) { return lexiconGender(w, state.lexicon); } });
-      const v = colorizeVerbs(ch, { tenseOf: function (w) { return verbTenseOf(w, state.verb); } });
-      const s = markStress(ch, state.stress);
-      const r = colorizeReductions(ch, state.stress); // stress must run first (it mutates tile text)
-      if (g.length || v.length || s.length || r.length) ch.dataset.rgDone = '1';
-    }
+    // Re-run every tick (no per-challenge latch): word-bank challenges mount fresh,
+    // unpainted tiles in the answer area as you tap, and React can re-render tiles —
+    // annotateAll is idempotent, so it paints the new nodes without doubling marks.
+    annotateAll(document, { lexicon: state.lexicon, stress: state.stress, verb: state.verb });
   }
+
+  // Don't reveal masked words: in "Repeat what you hear" the to-be-revealed sentence
+  // is in the DOM but visually hidden (transparent/visibility/opacity). Without this,
+  // our !important colour would paint — and thereby reveal — the answer. Needs layout.
+  function rgHidden(el) {
+    try {
+      const win = (el.ownerDocument && el.ownerDocument.defaultView) || window;
+      for (let n = el, i = 0; n && n.nodeType === 1 && i < 8; n = n.parentElement, i++) {
+        const cs = win.getComputedStyle(n);
+        if (!cs) continue;
+        if (cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) === 0) return true;
+      }
+      const m = (win.getComputedStyle(el).color || '').match(/^rgba?\(([^)]+)\)/);
+      if (m) { const p = m[1].split(','); if (p.length === 4 && parseFloat(p[3]) === 0) return true; }
+      return false;
+    } catch (e) { return false; }
+  }
+  setHiddenCheck(rgHidden);
 
   loadAll();
   setInterval(tick, 400);

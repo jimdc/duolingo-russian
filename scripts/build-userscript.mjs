@@ -15,10 +15,11 @@ const VERSION = JSON.parse(read('package.json')).version;
 const stripModule = (s) =>
   s.replace(/^\s*import[^\n]*\n/gm, '').replace(/^export\s+/gm, '');
 
-// Order: ru-gender (normalize) + colorize (wordGroups) before modules that use them.
+// Order: ru-gender (normalize) + colorize (wordGroups) before modules that use them;
+// annotate pulls them all together, so it comes last (before ui).
 const modules = [
   'src/ru-gender.js', 'src/colorize.js', 'src/lexicon.js',
-  'src/stress.js', 'src/verbs.js', 'src/reduce.js', 'src/ui.js',
+  'src/stress.js', 'src/verbs.js', 'src/reduce.js', 'src/annotate.js', 'src/ui.js',
 ].map((p) => stripModule(read(p)));
 
 const RAW = 'https://raw.githubusercontent.com/jimdc/duolingo-russian/master/src/data';
@@ -171,15 +172,29 @@ const entry = `
     const lg = document.getElementById('rg-legend');
     if (lg && !lg.dataset.rgClick) { lg.dataset.rgClick = '1'; lg.addEventListener('click', toggleReduce); }
     if (!ready()) return;
-    for (const ch of document.querySelectorAll('[data-test^="challenge challenge-"]')) {
-      if (ch.dataset.rgDone) continue;
-      const g = colorizeChallenge(ch, { genderOf: function (w) { return lexiconGender(w, state.lexicon); } });
-      const v = colorizeVerbs(ch, { tenseOf: function (w) { return verbTenseOf(w, state.verb); } });
-      const s = markStress(ch, state.stress);
-      const r = colorizeReductions(ch, state.stress); // stress must run first (it mutates tile text)
-      if (g.length || v.length || s.length || r.length) ch.dataset.rgDone = '1';
-    }
+    // Re-run every tick (no per-challenge latch): word-bank challenges mount fresh,
+    // unpainted tiles in the answer area as you tap, and React can re-render tiles —
+    // annotateAll is idempotent, so it paints the new nodes without doubling marks.
+    annotateAll(document, { lexicon: state.lexicon, stress: state.stress, verb: state.verb });
   }
+
+  // Don't reveal masked words: in "Repeat what you hear" the to-be-revealed sentence
+  // is in the DOM but visually hidden (transparent/visibility/opacity). Without this,
+  // our !important colour would paint — and thereby reveal — the answer. Needs layout.
+  function rgHidden(el) {
+    try {
+      const win = (el.ownerDocument && el.ownerDocument.defaultView) || window;
+      for (let n = el, i = 0; n && n.nodeType === 1 && i < 8; n = n.parentElement, i++) {
+        const cs = win.getComputedStyle(n);
+        if (!cs) continue;
+        if (cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) === 0) return true;
+      }
+      const m = (win.getComputedStyle(el).color || '').match(/^rgba?\\(([^)]+)\\)/);
+      if (m) { const p = m[1].split(','); if (p.length === 4 && parseFloat(p[3]) === 0) return true; }
+      return false;
+    } catch (e) { return false; }
+  }
+  setHiddenCheck(rgHidden);
 
   loadAll();
   setInterval(tick, 400);

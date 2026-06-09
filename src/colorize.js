@@ -23,6 +23,18 @@ const isWhitespace = (s) => /^\s*$/.test(s.textContent || '');
 
 export const hasCyrillic = (s) => /[Ѐ-ӿ]/.test(s.textContent || '');
 
+// Optional gate: skip words Duolingo is visually masking (e.g. the to-be-revealed
+// sentence in "Repeat what you hear"). Their real letters sit in the DOM but are
+// hidden by style, so our `!important` colour would reveal them — i.e. leak the
+// answer. The check needs layout, so the userscript entry injects a getComputedStyle
+// predicate; in headless tests it's unset and nothing is hidden.
+let hiddenCheck = null;
+/** @param {((el: Element) => boolean) | null} fn predicate: is this word masked? */
+export function setHiddenCheck(fn) {
+  hiddenCheck = typeof fn === 'function' ? fn : null;
+}
+const isHidden = (el) => !!(hiddenCheck && el && hiddenCheck(el));
+
 /** Split an ordered list of char spans into word-groups on whitespace spans. */
 function groupByWhitespace(spans) {
   const groups = [];
@@ -67,6 +79,7 @@ export function wordGroups(root) {
   for (const container of containers) {
     const charSpans = [...container.children].filter(isCharSpan);
     for (const spans of groupByWhitespace(charSpans)) {
+      if (isHidden(spans[0])) continue; // masked (to-be-revealed) word — don't reveal it
       groups.push({ word: spans.map((s) => s.textContent).join(''), spans });
     }
   }
@@ -75,6 +88,7 @@ export function wordGroups(root) {
   // Only Russian tiles matter — non-Cyrillic tiles (e.g. English answers) are
   // left out so the colour/stress passes never touch them.
   for (const tile of root.querySelectorAll('[data-test="challenge-tap-token-text"]')) {
+    if (isHidden(tile)) continue;
     if (hasCyrillic(tile)) groups.push({ word: tile.textContent || '', spans: [tile] });
   }
 
