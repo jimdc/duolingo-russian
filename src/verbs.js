@@ -72,7 +72,7 @@ export function verbMotionOf(word, meta) {
 /** Append a trailing superscript marker (aspect abbrev + motion arrow) after `last`. */
 function appendVerbMark(last, aspect, motion) {
   const doc = last.ownerDocument;
-  if (!doc || !last.parentNode) return;
+  if (!doc || !last.parentNode) return null;
   const mark = doc.createElement('span');
   mark.className = 'rg-vmeta';
   if (aspect) {
@@ -88,18 +88,27 @@ function appendVerbMark(last, aspect, motion) {
     mark.appendChild(m);
   }
   last.parentNode.insertBefore(mark, last.nextSibling);
+  return mark;
 }
 
 /**
  * Tag verb words in `root` with an aspect/motion superscript. Orthogonal to the tense
  * COLOUR, so it runs after colorizeVerbs; skips gender-coloured words (gender wins on
- * noun/verb homographs). Idempotent: the last span is flagged `rg-vmeta-done` so a
- * re-run never appends a second marker.
+ * noun/verb homographs).
+ *
+ * Idempotent AND self-reconciling. The old guard flagged the verb's last span and
+ * bailed if the flag was present — but the marker is a SEPARATE sibling node, and
+ * "Speak this sentence" re-renders the prompt by swapping the per-character spans for
+ * fresh elements (which lose the flag) while leaving our marker orphaned. That made a
+ * new marker pile up every tick: встать^pfpfpf. So instead: a marker already sitting
+ * immediately after the verb's last span is kept as-is, and any other .rg-vmeta in
+ * `root` (an orphan from a re-render, or on a now-spent/hidden word) is removed.
  * @returns {{word: string, aspect: string|null, motion: string|null}[]} words newly marked
  */
 export function colorizeVerbMeta(root, meta) {
-  if (!meta) return [];
+  if (!meta || !root || !root.querySelectorAll) return [];
   const applied = [];
+  const keep = new Set(); // markers that belong to a current verb word this tick
   for (const { word, spans } of wordGroups(root)) {
     if (!spans.length || isGendered(spans)) continue; // gender takes precedence
     if (isFunctionWord(word)) continue; // skip adverb/particle homographs (e.g. домой = imperative of домыть)
@@ -107,11 +116,18 @@ export function colorizeVerbMeta(root, meta) {
     const motion = verbMotionOf(word, meta);
     if (!aspect && !motion) continue;
     const last = spans[spans.length - 1];
-    if (last.classList && last.classList.contains('rg-vmeta-done')) continue; // already marked
-    appendVerbMark(last, aspect, motion);
-    if (last.classList) last.classList.add('rg-vmeta-done');
+    const existing = last.nextElementSibling;
+    if (existing && existing.classList && existing.classList.contains('rg-vmeta')) {
+      keep.add(existing); // already correctly placed — no churn on a stable prompt
+      continue;
+    }
+    const mark = appendVerbMark(last, aspect, motion);
+    if (mark) keep.add(mark);
     applied.push({ word, aspect, motion });
   }
+  // Drop markers left behind by a prompt re-render (orphaned siblings) or on words
+  // that are no longer marked this tick (e.g. a tile that became spent/hidden).
+  for (const m of root.querySelectorAll('.rg-vmeta')) if (!keep.has(m)) m.remove();
   return applied;
 }
 

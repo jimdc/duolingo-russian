@@ -13,7 +13,7 @@ import {
 
 // ---- pure lookups (synthetic packed lexicon) ----
 const meta = makeVerbMeta({
-  aspect: { pf: 'сделаю сделать помыл домой', ipf: 'делаю делать идти ходить мыл' },
+  aspect: { pf: 'сделаю сделать помыл домой встать', ipf: 'делаю делать идти ходить мыл' },
   motion: { uni: 'идти иду', multi: 'ходить хожу' },
 });
 
@@ -52,6 +52,37 @@ test('re-running is idempotent — no duplicate markers', () => {
   assert.equal(doc.querySelectorAll('.rg-vmeta').length, 1);
   assert.equal(doc.querySelector('.rg-asp-pf').textContent, 'pf');
   assert.equal(doc.querySelector('.rg-mot-uni'), null); // not a motion verb
+});
+
+test('marker does not pile up when Duolingo re-renders the prompt spans (встать^pfpfpf bug)', () => {
+  // "Speak this sentence" re-renders the sentence display as speech recognition
+  // progresses: it swaps the per-character spans for fresh elements but leaves our
+  // appended .rg-vmeta sibling (a node React doesn't own) behind. With the old
+  // class-on-the-span guard, every re-render's fresh spans looked unmarked, so a new
+  // marker was appended each tick → встать^pfpfpf. colorizeVerbMeta must reconcile to
+  // exactly one marker per verb word, dropping the orphaned ones.
+  const doc = challengeWith('встать'); // pf
+  const container = doc.querySelector('[data-test="hint-token"]').parentElement;
+  const reRenderSpans = () => {
+    // Duolingo replaces ITS char spans (fresh identity, no guard class) but our
+    // .rg-vmeta marker survives as an orphaned sibling.
+    const fresh = [...'встать'].map((c) => {
+      const s = doc.createElement('span');
+      s.setAttribute('aria-hidden', 'true');
+      s.textContent = c;
+      return s;
+    });
+    for (const old of container.querySelectorAll('span[aria-hidden]')) old.remove();
+    container.prepend(...fresh);
+  };
+
+  colorizeVerbMeta(doc, meta);
+  assert.equal(doc.querySelectorAll('.rg-vmeta').length, 1, 'one marker after first paint');
+  for (let i = 0; i < 3; i++) {
+    reRenderSpans();
+    colorizeVerbMeta(doc, meta);
+  }
+  assert.equal(doc.querySelectorAll('.rg-vmeta').length, 1, 'still exactly one after re-renders');
 });
 
 test('gender-coloured words get no verb marker (gender wins on homographs)', () => {
