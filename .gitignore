@@ -1,6 +1,8 @@
 node_modules/
 *.log
 .DS_Store
+CLAUDE.md
+AGENTS.md
 
 # Raw OpenRussian CSVs (8MB each) — source for scripts/build-lexicon.mjs.
 # Anchored to repo root so it does NOT match src/data/ (the shipped lexicon).
